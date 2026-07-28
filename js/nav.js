@@ -23,13 +23,6 @@ function renderSidebar(profile) {
   const sidebar = document.getElementById("sidebar");
   if (sidebar) {
     sidebar.innerHTML = `
-      <div class="sidebar-brand">
-        <span class="logo">🌾</span>
-        <div>
-          <h1>Benih Preorder</h1>
-          <p>Sistem Pesanan</p>
-        </div>
-      </div>
       <div class="sidebar-nav">${navHtml}</div>
     `;
   }
@@ -41,7 +34,7 @@ function renderSidebar(profile) {
   if (topbar) {
     topbar.innerHTML = `
       <span class="logo">🌾 Benih Preorder</span>
-      <button onclick="toggleSidebar()">☰</button>
+      <button onclick="toggleMenu()">☰</button>
     `;
   }
 
@@ -68,8 +61,7 @@ function renderPageTopbar(profile) {
     main.prepend(bar);
   }
   bar.innerHTML = `
-    <button type="button" class="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" title="Sembunyikan/Tampilkan menu">☰</button>
-    <div class="account-menu">
+    <div class="account-menu" style="margin-left:auto;">
       <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
         <span>Akun</span><span style="color:var(--gray-400);">›</span><span>${roleLabel}${displayName ? " / " + displayName : ""}</span>
         <span style="color:var(--gray-400); font-size:11px;">▼</span>
@@ -80,6 +72,15 @@ function renderPageTopbar(profile) {
       </div>
     </div>
   `;
+}
+
+function toggleMenu() {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  if (isMobile) {
+    toggleSidebar();
+  } else {
+    toggleDesktopSidebar();
+  }
 }
 
 function toggleDesktopSidebar() {
