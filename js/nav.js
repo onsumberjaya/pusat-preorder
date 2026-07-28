@@ -31,15 +31,10 @@ function renderSidebar(profile) {
         </div>
       </div>
       <div class="sidebar-nav">${navHtml}</div>
-      <div class="sidebar-footer">
-        <span class="role-badge">${profile.role === "owner" ? "Owner" : "Karyawan"}</span>
-        <div style="font-weight:600;">${escapeHtml(profile.full_name || profile.username || "")}</div>
-        <button class="btn-secondary" onclick="openChangePasswordModal()" style="width:100%;">Ganti Password Saya</button>
-        <button class="btn-secondary" onclick="logout()" style="width:100%;">Keluar</button>
-      </div>
     `;
   }
 
+  renderPageTopbar(profile);
   ensureChangePasswordModal();
 
   const topbar = document.getElementById("mobile-topbar");
@@ -52,7 +47,56 @@ function renderSidebar(profile) {
 
   const overlay = document.getElementById("sidebar-overlay");
   if (overlay) overlay.onclick = () => toggleSidebar(false);
+
+  if (localStorage.getItem("sidebarHidden") === "1") {
+    document.body.classList.add("sidebar-hidden");
+  }
 }
+
+function renderPageTopbar(profile) {
+  const main = document.querySelector("main.content");
+  if (!main) return;
+
+  const roleLabel = profile.role === "owner" ? "Owner" : "Karyawan";
+  const displayName = escapeHtml(profile.full_name || profile.username || "");
+
+  let bar = document.getElementById("page-topbar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "page-topbar";
+    bar.className = "page-topbar";
+    main.prepend(bar);
+  }
+  bar.innerHTML = `
+    <button type="button" class="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" title="Sembunyikan/Tampilkan menu">☰</button>
+    <div class="account-menu">
+      <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
+        <span>Akun</span><span style="color:var(--gray-400);">›</span><span>${roleLabel}${displayName ? " / " + displayName : ""}</span>
+        <span style="color:var(--gray-400); font-size:11px;">▼</span>
+      </button>
+      <div class="account-menu-panel" id="account-menu-panel">
+        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Ganti Password Saya</button>
+        <button type="button" onclick="closeAccountMenu(); logout();">🚪 Keluar</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleDesktopSidebar() {
+  const hidden = document.body.classList.toggle("sidebar-hidden");
+  localStorage.setItem("sidebarHidden", hidden ? "1" : "0");
+}
+
+function toggleAccountMenu(e) {
+  if (e) e.stopPropagation();
+  const panel = document.getElementById("account-menu-panel");
+  if (panel) panel.classList.toggle("open");
+}
+function closeAccountMenu() {
+  const panel = document.getElementById("account-menu-panel");
+  if (panel) panel.classList.remove("open");
+}
+document.addEventListener("click", closeAccountMenu);
 
 function toggleSidebar(forceState) {
   const sidebar = document.getElementById("sidebar");
