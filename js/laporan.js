@@ -48,12 +48,18 @@ function applyReportFilter() {
 function renderReport() {
   const totalUang = lapFiltered.reduce((s, o) => s + o.total, 0);
   const totalTerbayar = lapFiltered.reduce((s, o) => s + (o.paid_amount || 0), 0);
+  const totalKekurangan = totalUang - totalTerbayar;
+  const totalUnitProduk = lapFiltered.reduce(
+    (sum, o) => sum + (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
+    0
+  );
 
   document.getElementById("laporan-summary").innerHTML = `
-    <div class="grid grid-3">
+    <div class="grid grid-4">
       <div class="stat-card"><div class="stat-label">Jumlah Pesanan</div><div class="stat-value">${lapFiltered.length}</div></div>
-      <div class="stat-card brand"><div class="stat-label">Total Nilai Pesanan</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
-      <div class="stat-card brand"><div class="stat-label">Total Sudah Terbayar</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalTerbayar)}</div></div>
+      <div class="stat-card"><div class="stat-label">Jumlah Produk Dipesan (Unit)</div><div class="stat-value">${totalUnitProduk}</div></div>
+      <div class="stat-card brand"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
+      <div class="stat-card brand"><div class="stat-label">Sudah Bayar / Kekurangan</div><div class="stat-value" style="font-size:15px;"><span style="color:var(--brand-700);">${formatRupiah(totalTerbayar)}</span> / <span style="color:var(--red-600);">${formatRupiah(totalKekurangan)}</span></div></div>
     </div>`;
 
   const rows = lapFiltered
@@ -65,7 +71,10 @@ function renderReport() {
       <td>${escapeHtml(o.nama_pembeli)}</td>
       <td>${escapeHtml((o.items || []).map((it) => it.product_name).join(", "))}</td>
       <td>${escapeHtml([...new Set((o.items || []).map((it) => it.wave_label))].join(", "))}</td>
+      <td style="text-align:center;">${(o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0)}</td>
       <td style="text-align:right;">${formatRupiah(o.total)}</td>
+      <td style="text-align:right;">${formatRupiah(o.paid_amount || 0)}</td>
+      <td style="text-align:right;">${formatRupiah(o.total - (o.paid_amount || 0))}</td>
       <td>${STATUS_BAYAR_LABEL[o.status_bayar]}</td>
       <td>${o.is_diambil ? "Sudah" : "Belum"}</td>
     </tr>`
@@ -77,9 +86,9 @@ function renderReport() {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Produk</th><th>Gelombang</th><th>Total</th><th>Bayar</th><th>Ambil</th></tr>
+            <tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Produk</th><th>Gelombang</th><th>Jumlah</th><th>Total</th><th>Dibayar</th><th>Kekurangan</th><th>Status</th><th>Ambil</th></tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="8" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="11" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -101,6 +110,7 @@ function exportExcel() {
     Jumlah: (o.items || []).reduce((s, it) => s + it.jumlah, 0),
     Total: o.total,
     "Sudah Dibayar": o.paid_amount || 0,
+    Kekurangan: o.total - (o.paid_amount || 0),
     "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
     "Status Ambil": o.is_diambil ? "Sudah" : "Belum",
   }));
@@ -128,14 +138,17 @@ function exportPdf() {
     o.nama_pembeli,
     (o.items || []).map((it) => it.product_name).join(", "),
     [...new Set((o.items || []).map((it) => it.wave_label))].join(", "),
+    (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     formatRupiah(o.total),
+    formatRupiah(o.paid_amount || 0),
+    formatRupiah(o.total - (o.paid_amount || 0)),
     STATUS_BAYAR_LABEL[o.status_bayar],
     o.is_diambil ? "Sudah" : "Belum",
   ]);
 
   doc.autoTable({
     startY: 27,
-    head: [["No", "Tanggal", "Nama", "Produk", "Gelombang", "Total", "Bayar", "Ambil"]],
+    head: [["No", "Tanggal", "Nama", "Produk", "Gelombang", "Jumlah", "Total", "Dibayar", "Kekurangan", "Status", "Ambil"]],
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [22, 163, 74] },
