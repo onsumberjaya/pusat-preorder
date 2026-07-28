@@ -82,13 +82,17 @@ function renderDashboard() {
   const totalUang = orders.reduce((s, o) => s + o.total, 0);
   const jumlahLunas = orders.filter((o) => o.status_bayar === "lunas").length;
   const jumlahBelumLunas = totalPesanan - jumlahLunas;
+  const jumlahDiambil = orders.filter((o) => o.is_diambil).length;
+  const jumlahBelumDiambil = totalPesanan - jumlahDiambil;
   const pembeliUnik = new Set(orders.map((o) => (o.nama_pembeli || "").trim().toLowerCase())).size;
 
   const perProduk = {};
+  const perProdukPesanan = {};
   const perAlamat = {};
   orders.forEach((o) => {
     (o.items || []).forEach((it) => {
       perProduk[it.product_name] = (perProduk[it.product_name] || 0) + it.jumlah;
+      perProdukPesanan[it.product_name] = (perProdukPesanan[it.product_name] || 0) + 1;
     });
     const alamatKey = (o.alamat || "Tanpa Alamat").trim() || "Tanpa Alamat";
     perAlamat[alamatKey] = (perAlamat[alamatKey] || 0) + 1;
@@ -101,6 +105,7 @@ function renderDashboard() {
       <div class="stat-card brand"><div class="stat-label">Total Pesanan</div><div class="stat-value">${totalPesanan}</div></div>
       <div class="stat-card brand"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
       <div class="stat-card"><div class="stat-label">Lunas / Belum Lunas</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahLunas}</span> / <span style="color:var(--red-600);">${jumlahBelumLunas}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Sudah Diambil / Belum Diambil</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahDiambil}</span> / <span style="color:var(--red-600);">${jumlahBelumDiambil}</span></div></div>
     </div>
 
     <div class="grid grid-2">
@@ -112,6 +117,32 @@ function renderDashboard() {
         <h3 style="margin-top:0;">Jumlah Pesanan per Alamat (Top 10)</h3>
         <canvas id="chart-alamat" height="220"></canvas>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-top:0;">Detail Total per Produk</h3>
+      <table class="table">
+        <thead>
+          <tr><th>Produk</th><th>Jumlah Pesanan</th><th>Jumlah Unit</th></tr>
+        </thead>
+        <tbody>
+          ${
+            Object.keys(perProduk).length === 0
+              ? '<tr><td colspan="3" style="color:var(--gray-400);">Belum ada data.</td></tr>'
+              : Object.keys(perProduk)
+                  .sort((a, b) => perProduk[b] - perProduk[a])
+                  .map(
+                    (nama) => `
+                    <tr>
+                      <td>${escapeHtml(nama)}</td>
+                      <td>${perProdukPesanan[nama]}</td>
+                      <td>${perProduk[nama]}</td>
+                    </tr>`
+                  )
+                  .join("")
+          }
+        </tbody>
+      </table>
     </div>
   `;
 
