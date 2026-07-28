@@ -167,7 +167,8 @@ body.sidebar-hidden main.content { max-width: none; }
 #mobile-topbar {
   display: none;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 12px;
   background: #fff;
   border-bottom: 1px solid var(--gray-200);
   padding: 12px 16px;
@@ -200,6 +201,7 @@ main.content {
   }
   #sidebar.open { left: 0; }
   #mobile-topbar { display: flex; }
+  .page-topbar .sidebar-toggle-btn { display: none; }
   main.content { padding: 16px; }
   #sidebar-overlay {
     display: none;
