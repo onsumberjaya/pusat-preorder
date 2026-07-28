@@ -27,16 +27,8 @@ function renderSidebar(profile) {
     `;
   }
 
-  renderPageTopbar(profile);
+  renderTopbar(profile);
   ensureChangePasswordModal();
-
-  const topbar = document.getElementById("mobile-topbar");
-  if (topbar) {
-    topbar.innerHTML = `
-      <span class="logo">🌾 Benih Preorder</span>
-      <button onclick="toggleMenu()">☰</button>
-    `;
-  }
 
   const overlay = document.getElementById("sidebar-overlay");
   if (overlay) overlay.onclick = () => toggleSidebar(false);
@@ -46,27 +38,27 @@ function renderSidebar(profile) {
   }
 }
 
-function renderPageTopbar(profile) {
-  const main = document.querySelector("main.content");
-  if (!main) return;
+function renderTopbar(profile) {
+  const topbar = document.getElementById("mobile-topbar");
+  if (!topbar) return;
 
   const roleLabel = profile.role === "owner" ? "Owner" : "Karyawan";
   const displayName = escapeHtml(profile.full_name || profile.username || "");
 
-  let bar = document.getElementById("page-topbar");
-  if (!bar) {
-    bar = document.createElement("div");
-    bar.id = "page-topbar";
-    bar.className = "page-topbar";
-    main.prepend(bar);
-  }
-  bar.innerHTML = `
-    <div class="account-menu" style="margin-left:auto;">
+  topbar.innerHTML = `
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="topbar-toggle-btn" onclick="toggleMenu()" title="Sembunyikan/Tampilkan menu">☰</button>
+      <span class="logo">🌾 Benih Preorder</span>
+    </div>
+    <div class="account-menu">
       <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
-        <span>Akun</span><span style="color:var(--gray-400);">›</span><span>${roleLabel}${displayName ? " / " + displayName : ""}</span>
+        <span>👤 Akun</span>
         <span style="color:var(--gray-400); font-size:11px;">▼</span>
       </button>
       <div class="account-menu-panel" id="account-menu-panel">
+        <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
+          ${roleLabel}${displayName ? " · " + displayName : ""}
+        </div>
         <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Ganti Password Saya</button>
         <button type="button" onclick="closeAccountMenu(); logout();">🚪 Keluar</button>
       </div>

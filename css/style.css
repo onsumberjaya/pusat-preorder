@@ -181,7 +181,7 @@ body.sidebar-hidden main.content { max-width: none; }
   z-index: 40;
 }
 #mobile-topbar .logo { font-size: 18px; font-weight: 700; color: var(--brand-700); }
-#mobile-topbar button {
+#mobile-topbar .topbar-toggle-btn {
   background: none;
   border: none;
   font-size: 22px;
