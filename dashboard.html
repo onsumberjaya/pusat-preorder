@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard - Benih Preorder</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="mobile-topbar"></div>
+  <div id="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar"></nav>
+    <main class="content">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Ringkasan performa penjualan preorder.</p>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="toolbar">
+          <select id="filter-periode">
+            <option value="semua">Semua Waktu</option>
+            <option value="harian">Hari Ini</option>
+            <option value="mingguan">7 Hari Terakhir</option>
+            <option value="bulanan">Bulan Ini</option>
+            <option value="custom">Rentang Tanggal...</option>
+          </select>
+          <input type="date" id="filter-dari" style="display:none;" />
+          <span id="dash-to-label" style="display:none;">s/d</span>
+          <input type="date" id="filter-sampai" style="display:none;" />
+          <select id="filter-gelombang-dash"><option value="">Semua Gelombang</option></select>
+        </div>
+      </div>
+
+      <div id="dashboard-content"><div class="loading-center"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

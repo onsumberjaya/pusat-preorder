@@ -1,0 +1,112 @@
+let allUsers = [];
+
+window.onAuthReady = function () {
+  listenUsers();
+};
+
+function listenUsers() {
+  db.collection("users").orderBy("full_name").onSnapshot(
+    (snap) => {
+      allUsers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderUsers();
+    },
+    (err) => {
+      showToast("Gagal memuat akun: " + friendlyFirebaseError(err), "error");
+    }
+  );
+}
+
+function renderUsers() {
+  const container = document.getElementById("user-list");
+  if (allUsers.length === 0) {
+    container.innerHTML = `<div class="card empty-state">Belum ada akun.</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${allUsers
+              .map(
+                (u) => `
+              <tr>
+                <td>${escapeHtml(u.full_name)}</td>
+                <td>@${escapeHtml(u.username)}</td>
+                <td><span class="badge ${u.role === "owner" ? "badge-green" : "badge-gray"}">${u.role === "owner" ? "Owner" : "Karyawan"}</span></td>
+                <td><span class="badge ${u.is_active !== false ? "badge-green" : "badge-red"}">${u.is_active !== false ? "Aktif" : "Nonaktif"}</span></td>
+                <td style="text-align:right; white-space:nowrap;">
+                  <button class="btn-secondary btn-sm" onclick="toggleUserActive('${u.id}', ${u.is_active === false})">
+                    ${u.is_active === false ? "Aktifkan" : "Nonaktifkan"}
+                  </button>
+                </td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function openUserModal() {
+  document.getElementById("user-form").reset();
+  document.getElementById("user-form-alert").innerHTML = "";
+  document.getElementById("user-modal").style.display = "flex";
+}
+function closeUserModal() {
+  document.getElementById("user-modal").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("user-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById("user-fullname").value.trim();
+    const username = document.getElementById("user-username").value.trim().toLowerCase();
+    const password = document.getElementById("user-password").value;
+    const role = document.getElementById("user-role").value;
+    const alertBox = document.getElementById("user-form-alert");
+    const btn = document.getElementById("user-submit-btn");
+    alertBox.innerHTML = "";
+    btn.disabled = true;
+
+    // Pakai instance Firebase KEDUA supaya sesi login Owner saat ini tidak
+    // ikut tergantikan oleh akun baru yang baru dibuat (batasan Firebase Auth
+    // client-side: createUser otomatis login sebagai user itu di instance yang dipakai).
+    let secondaryApp;
+    try {
+      secondaryApp = firebase.apps.find((a) => a.name === "Secondary") ||
+        firebase.initializeApp(firebaseConfig, "Secondary");
+      const secondaryAuth = secondaryApp.auth();
+      const cred = await secondaryAuth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+      await db.collection("users").doc(cred.user.uid).set({
+        username,
+        full_name: fullName,
+        role,
+        is_active: true,
+        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      await secondaryAuth.signOut();
+      showToast("Akun berhasil dibuat.", "success");
+      closeUserModal();
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+async function toggleUserActive(id, makeActive) {
+  if (window.currentUserProfile && window.currentUserProfile.uid === id && !makeActive) {
+    showToast("Anda tidak bisa menonaktifkan akun Anda sendiri.", "error");
+    return;
+  }
+  try {
+    await db.collection("users").doc(id).update({ is_active: makeActive });
+    showToast(makeActive ? "Akun diaktifkan." : "Akun dinonaktifkan.", "success");
+  } catch (err) {
+    showToast(friendlyFirebaseError(err), "error");
+  }
+}

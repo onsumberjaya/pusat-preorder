@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    function isActiveUser() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_active != false;
+    }
+
+    // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.
+    match /config/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // Akun pengguna: tiap orang boleh baca profilnya sendiri, Owner boleh baca/tulis semua.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isOwner());
+      allow write: if isOwner();
+    }
+
+    // Produk & gelombang harga: semua yang login boleh baca, hanya Owner boleh ubah.
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // Penomoran otomatis pesanan.
+    match /counters/{counterId} {
+      allow read, write: if isSignedIn() && isActiveUser();
+    }
+
+    // Pesanan: semua user aktif boleh baca/buat/ubah (input, tandai diambil, catat bayar).
+    // Hapus pesanan dibatasi khusus Owner.
+    match /orders/{orderId} {
+      allow read, create, update: if isSignedIn() && isActiveUser();
+      allow delete: if isOwner();
+
+      match /payments/{paymentId} {
+        allow read, create: if isSignedIn() && isActiveUser();
+        allow update, delete: if isOwner();
+      }
+    }
+  }
+}

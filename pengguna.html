@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Akun Pengguna - Benih Preorder</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-owner-only="true">
+  <div id="mobile-topbar"></div>
+  <div id="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar"></nav>
+    <main class="content">
+      <h1 class="page-title">Akun Pengguna</h1>
+      <p class="page-subtitle">Kelola akun Owner dan Karyawan yang bisa mengakses sistem ini.</p>
+
+      <div class="alert alert-info">
+        Catatan: karena aplikasi ini tanpa server (client-side), Owner tidak bisa langsung mengatur ulang
+        password akun lain demi keamanan. Tiap pengguna mengganti password miliknya sendiri lewat menu
+        "Ganti Password Saya" di sidebar. Jika seorang karyawan lupa password, solusinya adalah
+        menonaktifkan akun lama lalu buat akun baru untuknya.
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <button class="btn-primary" onclick="openUserModal()">+ Akun Baru</button>
+      </div>
+
+      <div id="user-list"><div class="loading-center"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="user-modal" style="display:none;">
+    <div class="modal-box">
+      <h3 style="margin-top:0;">Tambah Akun Baru</h3>
+      <form id="user-form">
+        <div class="field">
+          <label>Nama Lengkap *</label>
+          <input type="text" id="user-fullname" required />
+        </div>
+        <div class="field">
+          <label>Username *</label>
+          <input type="text" id="user-username" required pattern="[a-zA-Z0-9._-]+" title="Huruf, angka, titik, garis bawah/strip saja" />
+        </div>
+        <div class="field">
+          <label>Password Awal * (minimal 6 karakter)</label>
+          <input type="text" id="user-password" required minlength="6" />
+        </div>
+        <div class="field">
+          <label>Role *</label>
+          <select id="user-role">
+            <option value="karyawan">Karyawan</option>
+            <option value="owner">Owner</option>
+          </select>
+        </div>
+        <div id="user-form-alert"></div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="submit" class="btn-primary" style="flex:1; justify-content:center;" id="user-submit-btn">Simpan</button>
+          <button type="button" class="btn-secondary" onclick="closeUserModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/pengguna.js"></script>
+</body>
+</html>

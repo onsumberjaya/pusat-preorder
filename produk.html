@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Produk & Gelombang - Benih Preorder</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-owner-only="true">
+  <div id="mobile-topbar"></div>
+  <div id="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar"></nav>
+    <main class="content">
+      <h1 class="page-title">Produk & Gelombang Harga</h1>
+      <p class="page-subtitle">Kelola produk benih dan atur harga per gelombang. Tandai satu gelombang sebagai aktif untuk tiap produk.</p>
+
+      <div style="margin-bottom:16px;">
+        <button class="btn-primary" onclick="openProductModal()">+ Tambah Produk</button>
+      </div>
+
+      <div id="product-list">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal tambah/edit produk -->
+  <div class="modal-backdrop" id="product-modal" style="display:none;">
+    <div class="modal-box">
+      <h3 id="product-modal-title" style="margin-top:0;">Tambah Produk</h3>
+      <form id="product-form">
+        <input type="hidden" id="product-id" />
+        <div class="field">
+          <label>Nama Produk *</label>
+          <input type="text" id="product-nama" required />
+        </div>
+        <div class="field">
+          <label>Deskripsi</label>
+          <textarea id="product-deskripsi" rows="2"></textarea>
+        </div>
+        <div class="field">
+          <label>Stok (opsional, kosongkan jika tidak dipantau)</label>
+          <input type="number" id="product-stok" min="0" />
+        </div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="submit" class="btn-primary" style="flex:1; justify-content:center;">Simpan</button>
+          <button type="button" class="btn-secondary" onclick="closeProductModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal tambah/edit gelombang -->
+  <div class="modal-backdrop" id="wave-modal" style="display:none;">
+    <div class="modal-box">
+      <h3 id="wave-modal-title" style="margin-top:0;">Tambah Gelombang</h3>
+      <form id="wave-form">
+        <input type="hidden" id="wave-product-id" />
+        <input type="hidden" id="wave-id" />
+        <div class="field">
+          <label>Nama Gelombang *</label>
+          <input type="text" id="wave-label" placeholder="Contoh: Gelombang 1" required />
+        </div>
+        <div class="field">
+          <label>Harga (Rp) *</label>
+          <input type="number" id="wave-harga" min="0" required />
+        </div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="submit" class="btn-primary" style="flex:1; justify-content:center;">Simpan</button>
+          <button type="button" class="btn-secondary" onclick="closeWaveModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/produk.js"></script>
+</body>
+</html>

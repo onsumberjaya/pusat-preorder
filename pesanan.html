@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daftar Pesanan - Benih Preorder</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="mobile-topbar"></div>
+  <div id="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar"></nav>
+    <main class="content">
+      <h1 class="page-title">Daftar Pesanan</h1>
+      <p class="page-subtitle">Semua pesanan preorder. Gunakan filter untuk mempersempit pencarian.</p>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="toolbar">
+          <input type="text" id="filter-search" placeholder="Cari nama / no HP / no pesanan" style="min-width:200px;" />
+          <select id="filter-produk"><option value="">Semua Produk</option></select>
+          <select id="filter-gelombang"><option value="">Semua Gelombang</option></select>
+          <select id="filter-bayar">
+            <option value="">Semua Status Bayar</option>
+            <option value="lunas">Lunas</option>
+            <option value="cicilan">Bayar Sebagian</option>
+            <option value="belum_bayar">Belum Bayar</option>
+          </select>
+          <select id="filter-ambil">
+            <option value="">Semua Status Ambil</option>
+            <option value="sudah">Sudah Diambil</option>
+            <option value="belum">Belum Diambil</option>
+          </select>
+          <button class="btn-secondary btn-sm" onclick="resetFilters()">Reset Filter</button>
+        </div>
+      </div>
+
+      <div id="bulk-toolbar" class="card" style="display:none; margin-bottom:16px; background:var(--brand-50);">
+        <div class="toolbar" style="margin:0;">
+          <strong id="bulk-count">0 dipilih</strong>
+          <button class="btn-secondary btn-sm" onclick="bulkAction('diambil', true)">Tandai Sudah Diambil</button>
+          <button class="btn-secondary btn-sm" onclick="bulkAction('diambil', false)">Tandai Belum Diambil</button>
+          <button class="btn-secondary btn-sm" onclick="bulkAction('bayar', 'lunas')">Tandai Lunas</button>
+          <button class="btn-secondary btn-sm" onclick="bulkAction('bayar', 'belum_bayar')">Tandai Belum Bayar</button>
+          <button class="btn-danger btn-sm" id="bulk-delete-btn" onclick="bulkDelete()" style="display:none;">Hapus</button>
+        </div>
+      </div>
+
+      <div id="order-list"><div class="loading-center"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+
+  <!-- Modal Detail Pesanan + Riwayat Pembayaran -->
+  <div class="modal-backdrop" id="detail-modal" style="display:none;">
+    <div class="modal-box" style="max-width:560px;">
+      <div id="detail-modal-content"></div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/pesanan.js"></script>
+</body>
+</html>
