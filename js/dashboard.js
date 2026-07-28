@@ -78,12 +78,16 @@ function filteredDashOrders() {
 
 function renderDashboard() {
   const orders = filteredDashOrders();
-  const totalPesanan = orders.length;
+  const jumlahNota = orders.length;
+  const totalUnitProduk = orders.reduce(
+    (sum, o) => sum + (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
+    0
+  );
   const totalUang = orders.reduce((s, o) => s + o.total, 0);
   const jumlahLunas = orders.filter((o) => o.status_bayar === "lunas").length;
-  const jumlahBelumLunas = totalPesanan - jumlahLunas;
+  const jumlahBelumLunas = jumlahNota - jumlahLunas;
   const jumlahDiambil = orders.filter((o) => o.is_diambil).length;
-  const jumlahBelumDiambil = totalPesanan - jumlahDiambil;
+  const jumlahBelumDiambil = jumlahNota - jumlahDiambil;
   const pembeliUnik = new Set(orders.map((o) => (o.nama_pembeli || "").trim().toLowerCase())).size;
 
   const perProduk = {};
@@ -102,7 +106,7 @@ function renderDashboard() {
   container.innerHTML = `
     <div class="grid grid-4" style="margin-bottom:20px;">
       <div class="stat-card brand"><div class="stat-label">Jumlah Pembeli</div><div class="stat-value">${pembeliUnik}</div></div>
-      <div class="stat-card brand"><div class="stat-label">Total Pesanan</div><div class="stat-value">${totalPesanan}</div></div>
+      <div class="stat-card brand"><div class="stat-label">Total Pesanan (Unit Produk)</div><div class="stat-value">${totalUnitProduk}</div><div style="font-size:11px; color:var(--gray-400); margin-top:2px;">dari ${jumlahNota} nota</div></div>
       <div class="stat-card brand"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
       <div class="stat-card"><div class="stat-label">Lunas / Belum Lunas</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahLunas}</span> / <span style="color:var(--red-600);">${jumlahBelumLunas}</span></div></div>
       <div class="stat-card"><div class="stat-label">Sudah Diambil / Belum Diambil</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahDiambil}</span> / <span style="color:var(--red-600);">${jumlahBelumDiambil}</span></div></div>
