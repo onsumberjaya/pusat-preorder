@@ -63,6 +63,7 @@ function renderNota() {
         <h2 style="margin:0;">${escapeHtml(notaToko.nama || "Toko Benih")}</h2>
         <p style="margin:2px 0;">${escapeHtml(notaToko.alamat || "")}</p>
         <p style="margin:2px 0;">${escapeHtml(notaToko.no_hp || "")}</p>
+        <p style="margin:6px 0 0; font-weight:700; letter-spacing:1px;">NOTA PREORDER</p>
       </div>
       <div style="display:flex; justify-content:space-between; margin-bottom:14px;">
         <div>
@@ -102,6 +103,7 @@ function renderNota() {
         <div><strong>${escapeHtml(notaToko.nama || "Toko Benih")}</strong></div>
         <div>${escapeHtml(notaToko.alamat || "")}</div>
         <div>${escapeHtml(notaToko.no_hp || "")}</div>
+        <div style="font-weight:700;">*** PREORDER ***</div>
       </div>
       <hr />
       <div>No: #${o.order_no}</div>
