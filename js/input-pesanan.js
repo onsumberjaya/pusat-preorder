@@ -152,7 +152,7 @@ function renderLineItems() {
         <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:12.5px; color:var(--gray-500);">
           <span>Harga satuan: ${wave ? formatRupiah(wave.harga) : "-"}</span>
           <span style="display:flex; gap:10px; align-items:center;">
-            <strong style="color:var(--gray-700);">Subtotal: ${formatRupiah(lineSubtotal(line))}</strong>
+            <strong id="subtotal-${line.key}" style="color:var(--gray-700);">Subtotal: ${formatRupiah(lineSubtotal(line))}</strong>
             ${lineItems.length > 1 ? `<a href="#" onclick="removeLine(${line.key}); return false;" style="color:var(--red-600);">Hapus</a>` : ""}
           </span>
         </div>
@@ -170,6 +170,12 @@ function updateLine(key, field, value) {
     const prod = getProduct(value);
     const activeWave = prod ? (prod.waves || []).find((w) => w.aktif) || (prod.waves || [])[0] : null;
     line.wave_id = activeWave ? activeWave.id : "";
+  }
+  if (field === "jumlah") {
+    const subtotalEl = document.getElementById(`subtotal-${key}`);
+    if (subtotalEl) subtotalEl.textContent = `Subtotal: ${formatRupiah(lineSubtotal(line))}`;
+    updateTotalDisplay();
+    return;
   }
   renderLineItems();
 }
