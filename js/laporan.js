@@ -69,7 +69,7 @@ function renderReport() {
       <td>#${o.order_no}</td>
       <td>${formatTanggal(o.tanggal)}</td>
       <td>${escapeHtml(o.nama_pembeli)}</td>
-      <td>${escapeHtml((o.items || []).map((it) => it.product_name).join(", "))}</td>
+      <td>${(o.items || []).map((it) => `${escapeHtml(it.product_name)} (${it.jumlah})`).join("<br>")}</td>
       <td>${escapeHtml([...new Set((o.items || []).map((it) => it.wave_label))].join(", "))}</td>
       <td style="text-align:center;">${(o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0)}</td>
       <td style="text-align:right;">${formatRupiah(o.total)}</td>
@@ -105,7 +105,7 @@ function exportExcel() {
     Nama: o.nama_pembeli,
     Alamat: o.alamat || "",
     "No HP": o.no_hp || "",
-    Produk: (o.items || []).map((it) => it.product_name).join(", "),
+    Produk: (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
     Gelombang: [...new Set((o.items || []).map((it) => it.wave_label))].join(", "),
     Jumlah: (o.items || []).reduce((s, it) => s + it.jumlah, 0),
     Total: o.total,
@@ -136,7 +136,7 @@ function exportPdf() {
     "#" + o.order_no,
     formatTanggal(o.tanggal),
     o.nama_pembeli,
-    (o.items || []).map((it) => it.product_name).join(", "),
+    (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
     [...new Set((o.items || []).map((it) => it.wave_label))].join(", "),
     (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     formatRupiah(o.total),
