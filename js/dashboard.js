@@ -134,12 +134,39 @@ function buildTimeSeries(orders, granularitas) {
       key = d.toISOString().slice(0, 10);
       label = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
     }
-    if (!buckets[key]) buckets[key] = { label, count: 0 };
+    if (!buckets[key]) buckets[key] = { label, count: 0, perProduk: {} };
     buckets[key].count += 1;
+    const seenProduk = new Set();
+    (o.items || []).forEach((it) => {
+      if (seenProduk.has(it.product_name)) return;
+      seenProduk.add(it.product_name);
+      buckets[key].perProduk[it.product_name] = (buckets[key].perProduk[it.product_name] || 0) + 1;
+    });
   });
   return Object.keys(buckets)
     .sort()
     .map((key) => buckets[key]);
+}
+
+// Warna tetap untuk produk tertentu (biru untuk MAPAN, oren keemasan untuk NINGRAT),
+// produk lain otomatis dapat warna berbeda dari palet cadangan biar tetap konsisten
+// walau nanti ada produk baru.
+function buildProductColorMap(names) {
+  const palette = ["#9333ea", "#db2777", "#0891b2", "#65a30d", "#dc2626", "#0f766e", "#4338ca"];
+  const map = {};
+  let paletteIdx = 0;
+  names.forEach((name) => {
+    const upper = (name || "").toUpperCase();
+    if (upper.includes("MAPAN")) {
+      map[name] = "#2563eb"; // biru
+    } else if (upper.includes("NINGRAT")) {
+      map[name] = "#d97706"; // oren keemasan
+    } else {
+      map[name] = palette[paletteIdx % palette.length];
+      paletteIdx++;
+    }
+  });
+  return map;
 }
 
 function renderDashboard() {
@@ -229,7 +256,9 @@ function renderDashboard() {
     </div>
   `;
 
-  drawTimeSeriesChart("chart-waktu", buildTimeSeries(orders, dashGranularitas));
+  const produkNamesUrut = Object.keys(perProduk).sort();
+  const produkColorMap = buildProductColorMap(produkNamesUrut);
+  drawTimeSeriesChart("chart-waktu", buildTimeSeries(orders, dashGranularitas), produkNamesUrut, produkColorMap);
   document.getElementById("chart-granularitas").addEventListener("change", (e) => {
     dashGranularitas = e.target.value;
     renderDashboard();
@@ -242,7 +271,7 @@ function renderDashboard() {
   drawBarChart("chart-alamat", Object.fromEntries(topAlamat), "chartAlamat", "#0ea5e9", true);
 }
 
-function drawTimeSeriesChart(canvasId, timeSeries) {
+function drawTimeSeriesChart(canvasId, timeSeries, produkNames, produkColorMap) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return;
   if (chartWaktu) chartWaktu.destroy();
@@ -252,26 +281,39 @@ function drawTimeSeriesChart(canvasId, timeSeries) {
     return;
   }
 
+  const datasets = [
+    {
+      label: "Total Pesanan",
+      data: timeSeries.map((t) => t.count),
+      borderColor: "#16a34a",
+      backgroundColor: "rgba(22, 163, 74, 0.12)",
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3,
+      pointBackgroundColor: "#16a34a",
+    },
+    ...produkNames.map((nama) => ({
+      label: nama,
+      data: timeSeries.map((t) => t.perProduk[nama] || 0),
+      borderColor: produkColorMap[nama],
+      backgroundColor: "transparent",
+      fill: false,
+      tension: 0.3,
+      borderWidth: 2,
+      pointRadius: 2,
+      pointBackgroundColor: produkColorMap[nama],
+    })),
+  ];
+
   chartWaktu = new Chart(ctx, {
     type: "line",
     data: {
       labels: timeSeries.map((t) => t.label),
-      datasets: [
-        {
-          label: "Jumlah Pesanan",
-          data: timeSeries.map((t) => t.count),
-          borderColor: "#16a34a",
-          backgroundColor: "rgba(22, 163, 74, 0.12)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointBackgroundColor: "#16a34a",
-        },
-      ],
+      datasets,
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: true, position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },
   });
