@@ -359,6 +359,32 @@ table tbody tr:hover { background: var(--gray-50); }
 
 .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); font-size: 13.5px; }
 
+/* ---------- Ikon aksi tabel (tombol bulat kecil) ---------- */
+.icon-btn {
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  color: var(--gray-500);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.icon-btn:hover { background: var(--gray-50); border-color: var(--gray-300); color: var(--gray-800); }
+.icon-btn.danger:hover { background: var(--red-50); border-color: #fecaca; color: var(--red-600); }
+
+/* ---------- Baris item produk di dalam sel tabel (Produk & Gelombang / Qty) ---------- */
+.order-item-line { padding: 2px 0; font-size: 13px; }
+.order-item-line + .order-item-line {
+  margin-top: 7px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--gray-200);
+}
+.order-item-line .item-produk { font-weight: 600; color: var(--gray-800); }
+.order-item-line .item-gelombang { font-size: 11px; font-weight: 700; color: var(--brand-600); margin-top: 1px; }
+.order-item-line .item-qty { font-weight: 700; color: var(--gray-800); }
+
 .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--gray-200); border-top-color: var(--brand-600); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-center { display: flex; justify-content: center; align-items: center; padding: 60px 0; }

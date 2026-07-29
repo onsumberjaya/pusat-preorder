@@ -124,18 +124,14 @@ function renderOrders() {
           <thead>
             <tr>
               <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
-              <th>No</th>
-              <th>Tanggal</th>
-              <th>Nama</th>
-              <th>Alamat</th>
-              <th>No HP</th>
-              <th>Produk</th>
-              <th>Gelombang</th>
-              <th>Jumlah</th>
-              <th>Total</th>
-              <th>Bayar</th>
-              <th>Ambil</th>
-              <th></th>
+              <th>Nota / Tanggal</th>
+              <th>Pemesan</th>
+              <th>Produk & Gelombang</th>
+              <th>Qty</th>
+              <th>Total Tagihan</th>
+              <th>Status Bayar</th>
+              <th>Pengambilan</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -150,30 +146,48 @@ function renderOrders() {
 
 function renderRow(o, isOwner) {
   const items = o.items || [];
-  const produkNames = items.map((it) => it.product_name).join(", ");
-  const gelombangLabels = [...new Set(items.map((it) => it.wave_label))].join(", ");
-  const totalQty = items.reduce((s, it) => s + it.jumlah, 0);
   const checked = selectedIds.has(o.id) ? "checked" : "";
+
+  const produkCell = items
+    .map(
+      (it) => `
+      <div class="order-item-line">
+        <div class="item-produk">${escapeHtml(it.product_name)}</div>
+        <div class="item-gelombang">${escapeHtml(it.wave_label)}</div>
+      </div>`
+    )
+    .join("");
+
+  const qtyCell = items
+    .map((it) => `<div class="order-item-line"><div class="item-qty">${it.jumlah}</div></div>`)
+    .join("");
+
+  const belumLunas = o.status_bayar !== "lunas";
 
   return `
     <tr>
       <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
-      <td>#${o.order_no}</td>
-      <td>${formatTanggal(o.tanggal)}</td>
-      <td>${escapeHtml(o.nama_pembeli)}</td>
-      <td style="max-width:160px; white-space:normal;">${escapeHtml(o.alamat || "-")}</td>
-      <td>${escapeHtml(o.no_hp || "-")}</td>
-      <td style="max-width:160px; white-space:normal;">${escapeHtml(produkNames)}</td>
-      <td>${escapeHtml(gelombangLabels)}</td>
-      <td>${totalQty}</td>
-      <td>${formatRupiah(o.total)}</td>
-      <td><span class="badge ${STATUS_BAYAR_BADGE[o.status_bayar]}">${STATUS_BAYAR_LABEL[o.status_bayar]}</span></td>
-      <td><span class="badge ${o.is_diambil ? "badge-green" : "badge-gray"}">${o.is_diambil ? "Sudah" : "Belum"}</span></td>
+      <td>
+        <div style="font-weight:700; color:var(--gray-900);">#${o.order_no}</div>
+        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
+      </td>
+      <td>
+        <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
+        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
+      </td>
+      <td style="min-width:170px;">${produkCell}</td>
+      <td>${qtyCell}</td>
+      <td>
+        <div style="font-weight:700; color:var(--gray-900);">${formatRupiah(o.total)}</div>
+        ${belumLunas ? `<div style="font-size:11px; color:var(--gray-400); margin-top:1px;">Bayar: ${formatRupiah(o.paid_amount || 0)}</div>` : ""}
+      </td>
+      <td><span class="badge ${STATUS_BAYAR_BADGE[o.status_bayar]}">${STATUS_BAYAR_LABEL[o.status_bayar].toUpperCase()}</span></td>
+      <td><span class="badge ${o.is_diambil ? "badge-green" : "badge-gray"}">${o.is_diambil ? "SUDAH" : "BELUM"}</span></td>
       <td style="white-space:nowrap;">
-        <button class="btn-secondary btn-sm" onclick="openDetailModal('${o.id}')">Detail / Bayar</button>
-        <button class="btn-secondary btn-sm" onclick="window.open('nota.html?id=${o.id}','_blank')">Nota</button>
-        ${isOwner ? `<a class="btn-secondary btn-sm" href="input-pesanan.html?edit=${o.id}">Edit</a>` : ""}
-        ${isOwner ? `<button class="btn-danger btn-sm" onclick="deleteOrder('${o.id}')">Hapus</button>` : ""}
+        <div style="display:flex; gap:6px;">
+          <button class="icon-btn" title="Lihat Detail / Catat Bayar" onclick="openDetailModal('${o.id}')"><i class="ph ph-eye"></i></button>
+          <button class="icon-btn" title="Cetak Nota" onclick="window.open('nota.html?id=${o.id}','_blank')"><i class="ph ph-printer"></i></button>
+        </div>
       </td>
     </tr>`;
 }
@@ -302,15 +316,20 @@ function renderDetailModal(order) {
     )
     .join("");
   const sisa = order.total - (order.paid_amount || 0);
+  const isOwner = window.currentUserProfile && window.currentUserProfile.role === "owner";
 
   document.getElementById("detail-modal-content").innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
       <h3 style="margin:0;">Pesanan #${order.order_no}</h3>
-      <button class="btn-secondary btn-sm" onclick="closeDetailModal()">✕</button>
+      <button class="icon-btn" onclick="closeDetailModal()"><i class="ph ph-x"></i></button>
     </div>
-    <p style="color:var(--gray-500); font-size:13px; margin:4px 0 14px;">
+    <p style="color:var(--gray-500); font-size:13px; margin:4px 0 4px;">
       ${escapeHtml(order.nama_pembeli)} · ${formatTanggal(order.tanggal)}
     </p>
+    <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px; font-size:12.5px; color:var(--gray-600); display:grid; gap:4px;">
+      <div><i class="ph ph-phone" style="color:var(--gray-400);"></i> ${escapeHtml(order.no_hp || "-")}</div>
+      <div><i class="ph ph-map-pin" style="color:var(--gray-400);"></i> ${escapeHtml(order.alamat || "-")}</div>
+    </div>
     <table style="margin-bottom:10px;">
       <tbody>${itemRows}</tbody>
     </table>
@@ -342,6 +361,16 @@ function renderDetailModal(order) {
 
     <div style="font-weight:600; font-size:13.5px; margin-bottom:6px;">Riwayat Pembayaran</div>
     <div id="payment-history"><p style="color:var(--gray-400); font-size:13px;">Memuat...</p></div>
+
+    ${
+      isOwner
+        ? `
+    <div style="display:flex; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--gray-100);">
+      <a class="btn-secondary btn-sm" href="input-pesanan.html?edit=${order.id}" style="flex:1; justify-content:center;"><i class="ph ph-pencil-simple"></i> Edit Pesanan</a>
+      <button class="btn-danger btn-sm" style="flex:1; justify-content:center;" onclick="closeDetailModal(); deleteOrder('${order.id}');"><i class="ph ph-trash"></i> Hapus</button>
+    </div>`
+        : ""
+    }
   `;
 
   const form = document.getElementById("payment-form");
