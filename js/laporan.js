@@ -160,22 +160,31 @@ function exportExcel() {
     showToast("Tidak ada data untuk diekspor.", "error");
     return;
   }
-  const data = lapFiltered.map((o) => ({
-    "No Pesanan": formatOrderNo(o),
-    Tanggal: formatTanggal(o.tanggal),
-    Nama: o.nama_pembeli,
-    "No HP": o.no_hp || "",
-    Alamat: o.alamat || "",
-    "Produk & Gelombang": (o.items || []).map((it) => `${it.product_name} x${it.jumlah} (${resolveWaveLabel(it)})`).join("\n"),
-    Qty: (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
-    Total: o.total,
-    Dibayar: o.paid_amount || 0,
-    Kekurangan: o.total - (o.paid_amount || 0),
-    "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
-    Pengambilan: o.is_diambil ? "Sudah" : "Belum",
-    "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
-    Catatan: o.catatan || "",
-  }));
+  const data = [];
+  lapFiltered.forEach((o) => {
+    const items = o.items && o.items.length ? o.items : [null];
+    items.forEach((it) => {
+      data.push({
+        "No Pesanan": formatOrderNo(o),
+        Tanggal: formatTanggal(o.tanggal),
+        Nama: o.nama_pembeli,
+        "No HP": o.no_hp || "",
+        Alamat: o.alamat || "",
+        Produk: it ? it.product_name : "-",
+        Gelombang: it ? resolveWaveLabel(it) : "-",
+        Qty: it ? it.jumlah : "",
+        "Harga Satuan": it ? it.harga_satuan : "",
+        Subtotal: it ? it.subtotal : "",
+        "Total Pesanan": o.total,
+        Dibayar: o.paid_amount || 0,
+        Kekurangan: o.total - (o.paid_amount || 0),
+        "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
+        Pengambilan: o.is_diambil ? "Sudah" : "Belum",
+        "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
+        Catatan: o.catatan || "",
+      });
+    });
+  });
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Laporan Pesanan");
