@@ -97,13 +97,20 @@ service cloud.firestore {
       // berubah oleh siapa pun (termasuk Owner) -- itu identitas & nomor
       // nota permanen milik pesanan. Karyawan (bukan Owner) tambahan lagi
       // hanya boleh menyentuh field pembayaran & status pengambilan.
+      // Pakai .get(key, null) (bukan akses langsung) untuk order_no/created_by/
+      // created_at supaya tidak error kalau pesanan lama dari awal-awal
+      // development belum punya salah satu field itu. Khusus nota_tahun/
+      // nota_seq: kalau pesanan lama belum punya (null), boleh diisi SEKALI
+      // (dipakai fitur "Perbaiki Nomor Nota" untuk menomori ulang pesanan
+      // lama yang bentrok) -- begitu sudah terisi, langsung terkunci permanen
+      // seperti biasa.
       allow update: if isSignedIn() && isActiveUser()
         && isValidOrderShape(request.resource.data)
-        && request.resource.data.created_by == resource.data.created_by
-        && request.resource.data.order_no == resource.data.order_no
-        && request.resource.data.created_at == resource.data.created_at
-        && request.resource.data.nota_tahun == resource.data.nota_tahun
-        && request.resource.data.nota_seq == resource.data.nota_seq
+        && request.resource.data.get('created_by', null) == resource.data.get('created_by', null)
+        && request.resource.data.get('order_no', null) == resource.data.get('order_no', null)
+        && request.resource.data.get('created_at', null) == resource.data.get('created_at', null)
+        && (resource.data.get('nota_tahun', null) == null || request.resource.data.nota_tahun == resource.data.nota_tahun)
+        && (resource.data.get('nota_seq', null) == null || request.resource.data.nota_seq == resource.data.nota_seq)
         && (isOwner() || isEmployeeAllowedOrderEdit(resource.data, request.resource.data));
 
       allow delete: if isOwner();
