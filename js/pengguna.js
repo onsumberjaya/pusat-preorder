@@ -37,6 +37,9 @@ function renderUsers() {
                 <td><span class="badge ${u.role === "owner" ? "badge-green" : "badge-gray"}">${u.role === "owner" ? "Owner" : "Karyawan"}</span></td>
                 <td><span class="badge ${u.is_active !== false ? "badge-green" : "badge-red"}">${u.is_active !== false ? "Aktif" : "Nonaktif"}</span></td>
                 <td style="text-align:right; white-space:nowrap;">
+                  <button class="btn-secondary btn-sm" onclick="openEditUserModal('${u.id}')">
+                    Edit
+                  </button>
                   <button class="btn-secondary btn-sm" onclick="toggleUserActive('${u.id}', ${u.is_active === false})">
                     ${u.is_active === false ? "Aktifkan" : "Nonaktifkan"}
                   </button>
@@ -58,6 +61,47 @@ function openUserModal() {
 function closeUserModal() {
   document.getElementById("user-modal").style.display = "none";
 }
+
+function openEditUserModal(id) {
+  const u = allUsers.find((x) => x.id === id);
+  if (!u) return;
+  document.getElementById("edit-user-id").value = u.id;
+  document.getElementById("edit-user-fullname").value = u.full_name || "";
+  document.getElementById("edit-user-role").value = u.role || "karyawan";
+  document.getElementById("edit-user-form-alert").innerHTML = "";
+  document.getElementById("edit-user-modal").style.display = "flex";
+}
+function closeEditUserModal() {
+  document.getElementById("edit-user-modal").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("edit-user-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("edit-user-id").value;
+    const fullName = document.getElementById("edit-user-fullname").value.trim();
+    const role = document.getElementById("edit-user-role").value;
+    const alertBox = document.getElementById("edit-user-form-alert");
+    const btn = document.getElementById("edit-user-submit-btn");
+    alertBox.innerHTML = "";
+
+    if (window.currentUserProfile && window.currentUserProfile.uid === id && role !== "owner") {
+      alertBox.innerHTML = `<div class="alert alert-error">Anda tidak bisa mengubah role akun Anda sendiri dari Owner ke Karyawan.</div>`;
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      await db.collection("users").doc(id).update({ full_name: fullName, role });
+      showToast("Akun berhasil diperbarui.", "success");
+      closeEditUserModal();
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("user-form").addEventListener("submit", async (e) => {

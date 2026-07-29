@@ -65,6 +65,31 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="edit-user-modal" style="display:none;">
+    <div class="modal-box">
+      <h3 style="margin-top:0;">Edit Akun</h3>
+      <form id="edit-user-form">
+        <input type="hidden" id="edit-user-id" />
+        <div class="field">
+          <label>Nama Lengkap *</label>
+          <input type="text" id="edit-user-fullname" required />
+        </div>
+        <div class="field">
+          <label>Role *</label>
+          <select id="edit-user-role">
+            <option value="karyawan">Karyawan</option>
+            <option value="owner">Owner</option>
+          </select>
+        </div>
+        <div id="edit-user-form-alert"></div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="submit" class="btn-primary" style="flex:1; justify-content:center;" id="edit-user-submit-btn">Simpan Perubahan</button>
+          <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
