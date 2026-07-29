@@ -3,6 +3,7 @@ let lineItems = [];
 let lineKeyCounter = 0;
 let editOrderId = null;
 let editOrderData = null;
+let formReady = false;
 
 function emptyLine() {
   return { key: lineKeyCounter++, product_id: "", wave_id: "", jumlah: "1" };
@@ -11,13 +12,6 @@ function emptyLine() {
 window.onAuthReady = async function () {
   const params = new URLSearchParams(location.search);
   editOrderId = params.get("edit");
-
-  try {
-    const prodSnap = await db.collection("products").orderBy("nama").get();
-    products = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch (err) {
-    showToast("Gagal memuat produk: " + friendlyFirebaseError(err), "error");
-  }
 
   if (editOrderId) {
     document.getElementById("page-heading").textContent = "Edit Pesanan";
@@ -40,8 +34,28 @@ window.onAuthReady = async function () {
     }
   }
 
-  if (lineItems.length === 0) lineItems = [emptyLine()];
-  renderForm();
+  // Real-time: kalau Owner ubah harga/gelombang/stok produk SAAT halaman ini
+  // masih terbuka, harga & peringatan stok di form otomatis ikut ter-update
+  // tanpa perlu refresh manual -- tapi pilihan produk/gelombang/jumlah yang
+  // sedang diisi TIDAK direset, cuma harga & tampilannya yang menyesuaikan.
+  db.collection("products")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (!formReady) {
+          if (lineItems.length === 0) lineItems = [emptyLine()];
+          formReady = true;
+          renderForm();
+        } else {
+          renderLineItems();
+          updateTotalDisplay();
+        }
+      },
+      (err) => {
+        showToast("Gagal memuat produk: " + friendlyFirebaseError(err), "error");
+      }
+    );
 };
 
 function getProduct(id) {
