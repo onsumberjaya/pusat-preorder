@@ -315,6 +315,17 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--brand-500);
   box-shadow: 0 0 0 3px var(--brand-100);
 }
+input[type="checkbox"], input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--gray-300);
+  flex-shrink: 0;
+  accent-color: var(--brand-600);
+}
+input[type="checkbox"]:focus, input[type="radio"]:focus {
+  box-shadow: none;
+}
 .field { margin-bottom: 15px; }
 
 .order-layout { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
@@ -420,7 +431,7 @@ table tbody tr:hover { background: var(--gray-50); }
   padding: 10px 13px;
   margin-bottom: 0;
 }
-.toolbar .filter-chip input[type="checkbox"] { width: auto; flex-shrink: 0; }
+.toolbar .filter-chip input[type="checkbox"] { margin: 0; }
 
 .stat-card {
   background: #fff;
