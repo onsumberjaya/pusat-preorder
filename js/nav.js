@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
   { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
   { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: true },
-  { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: true },
+  { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: false },
 ];
 
 function renderSidebar(profile) {
