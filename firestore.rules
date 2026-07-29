@@ -34,6 +34,15 @@ service cloud.firestore {
         && data.status_bayar == computedStatusBayar(data.total, data.paid_amount);
     }
 
+    // Field pesanan yang boleh disentuh karyawan (bukan Owner) saat update:
+    // catat pembayaran (paid_amount/status_bayar) & tandai diambil
+    // (is_diambil/tanggal_ambil). Di luar field ini -- termasuk items, total,
+    // nama_pembeli, alamat -- WAJIB lewat Owner.
+    function isEmployeeAllowedOrderEdit(before, after) {
+      return after.diff(before).affectedKeys()
+        .hasOnly(['paid_amount', 'status_bayar', 'is_diambil', 'tanggal_ambil']);
+    }
+
     // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.
     match /config/{docId} {
       allow read: if isSignedIn();
@@ -52,13 +61,28 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
-    // Penomoran otomatis pesanan.
+    // Penomoran otomatis pesanan. Hanya field "seq" (angka) yang boleh
+    // ditulis, dan nilainya wajib naik -- mencegah nomor nota/urut dirusak
+    // atau dimundurkan (yang bisa menyebabkan nomor nota bentrok/duplikat).
     match /counters/{counterId} {
-      allow read, write: if isSignedIn() && isActiveUser();
+      allow read: if isSignedIn() && isActiveUser();
+
+      allow create: if isSignedIn() && isActiveUser()
+        && request.resource.data.keys().hasOnly(['seq'])
+        && request.resource.data.seq is number
+        && request.resource.data.seq > 0;
+
+      allow update: if isSignedIn() && isActiveUser()
+        && request.resource.data.keys().hasOnly(['seq'])
+        && request.resource.data.seq is number
+        && request.resource.data.seq > resource.data.seq;
+
+      allow delete: if isOwner();
     }
 
-    // Pesanan: semua user aktif boleh baca/buat/ubah (input, tandai diambil, catat bayar),
-    // TAPI data yang dikirim harus valid & konsisten (total, sisa bayar, status bayar).
+    // Pesanan: semua user aktif boleh baca & buat pesanan baru.
+    // Setelah pesanan dibuat, hanya Owner yang boleh mengubah item/total/data
+    // pembeli; karyawan hanya boleh catat pembayaran & tandai diambil.
     // Hapus pesanan dibatasi khusus Owner.
     match /orders/{orderId} {
       allow read: if isSignedIn() && isActiveUser();
@@ -69,15 +93,18 @@ service cloud.firestore {
         && isValidOrderShape(request.resource.data)
         && request.resource.data.created_by == request.auth.uid;
 
-      // Saat diedit (termasuk update sebagian lewat aksi massal), field
-      // order_no/created_by/created_at tidak boleh berubah — sengaja TIDAK
-      // mengunci created_by == pengguna saat ini, karena karyawan lain memang
-      // boleh mengedit pesanan yang dibuat rekan kerjanya.
+      // order_no/created_by/created_at/nota_tahun/nota_seq tidak boleh
+      // berubah oleh siapa pun (termasuk Owner) -- itu identitas & nomor
+      // nota permanen milik pesanan. Karyawan (bukan Owner) tambahan lagi
+      // hanya boleh menyentuh field pembayaran & status pengambilan.
       allow update: if isSignedIn() && isActiveUser()
         && isValidOrderShape(request.resource.data)
         && request.resource.data.created_by == resource.data.created_by
         && request.resource.data.order_no == resource.data.order_no
-        && request.resource.data.created_at == resource.data.created_at;
+        && request.resource.data.created_at == resource.data.created_at
+        && request.resource.data.nota_tahun == resource.data.nota_tahun
+        && request.resource.data.nota_seq == resource.data.nota_seq
+        && (isOwner() || isEmployeeAllowedOrderEdit(resource.data, request.resource.data));
 
       allow delete: if isOwner();
 
