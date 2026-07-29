@@ -106,10 +106,12 @@ function renderNota() {
         <div style="font-weight:700;">*** PREORDER ***</div>
       </div>
       <hr />
-      <div>No: ${formatOrderNo(o)}</div>
-      <div>Tgl: ${formatTanggal(o.tanggal)}</div>
-      <div>Nama: ${escapeHtml(o.nama_pembeli)}</div>
-      <div>HP: ${escapeHtml(o.no_hp || "-")}</div>
+      <table class="info-table">
+        <tr><td>No</td><td>: ${formatOrderNo(o)}</td></tr>
+        <tr><td>Tgl</td><td>: ${formatTanggal(o.tanggal)}</td></tr>
+        <tr><td>Nama</td><td>: ${escapeHtml(o.nama_pembeli)}</td></tr>
+        <tr><td>HP</td><td>: ${escapeHtml(o.no_hp || "-")}</td></tr>
+      </table>
       <hr />
       <table>${itemRowsDm}</table>
       <hr />
