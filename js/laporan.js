@@ -90,23 +90,45 @@ function renderReport() {
     }`;
 
   const rows = lapFiltered
-    .map(
-      (o) => `
+    .map((o) => {
+      const items = o.items || [];
+      const janggal = hasPriceMismatch(o);
+      const belumLunas = o.status_bayar !== "lunas";
+
+      const produkCell = items
+        .map(
+          (it) => `
+        <div class="order-item-line">
+          <div class="item-produk">${escapeHtml(it.product_name)} <span style="color:var(--gray-400); font-weight:500;">x${it.jumlah}</span></div>
+          <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it))}</div>
+        </div>`
+        )
+        .join("");
+
+      const totalQty = items.reduce((s, it) => s + (Number(it.jumlah) || 0), 0);
+      const kekurangan = o.total - (o.paid_amount || 0);
+
+      return `
     <tr>
-      <td>${formatOrderNo(o)}</td>
-      <td>${formatTanggal(o.tanggal)}</td>
-      <td>${escapeHtml(o.nama_pembeli)}</td>
-      <td>${(o.items || []).map((it) => `${escapeHtml(it.product_name)} (${it.jumlah})`).join("<br>")}</td>
-      <td>${escapeHtml([...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "))}</td>
-      <td style="text-align:center;">${(o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0)}</td>
-      <td style="text-align:right;">${formatRupiah(o.total)}</td>
+      <td>
+        <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
+        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
+      </td>
+      <td>
+        <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
+        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
+        ${o.alamat ? `<div style="font-size:11.5px; color:var(--gray-400);">${escapeHtml(o.alamat)}</div>` : ""}
+      </td>
+      <td style="min-width:170px;">${produkCell}</td>
+      <td style="text-align:center;">${totalQty}</td>
+      <td style="text-align:right; font-weight:700; color:var(--gray-900);">${formatRupiah(o.total)}</td>
       <td style="text-align:right;">${formatRupiah(o.paid_amount || 0)}</td>
-      <td style="text-align:right;">${formatRupiah(o.total - (o.paid_amount || 0))}</td>
-      <td>${STATUS_BAYAR_LABEL[o.status_bayar]}</td>
-      <td>${o.is_diambil ? "Sudah" : "Belum"}</td>
-      <td>${hasPriceMismatch(o) ? '<span style="color:var(--red-600); font-weight:600;">⚠️ Janggal</span>' : '<span style="color:var(--gray-400);">OK</span>'}</td>
-    </tr>`
-    )
+      <td style="text-align:right; ${belumLunas ? "color:var(--red-600); font-weight:600;" : ""}">${formatRupiah(kekurangan)}</td>
+      <td><span class="badge ${STATUS_BAYAR_BADGE[o.status_bayar]}">${STATUS_BAYAR_LABEL[o.status_bayar].toUpperCase()}</span></td>
+      <td><span class="badge ${o.is_diambil ? "badge-green" : "badge-gray"}">${o.is_diambil ? "SUDAH" : "BELUM"}</span></td>
+      <td>${janggal ? '<span class="badge badge-red">⚠️ JANGGAL</span>' : '<span class="badge badge-gray">OK</span>'}</td>
+    </tr>`;
+    })
     .join("");
 
   document.getElementById("laporan-table").innerHTML = `
@@ -114,9 +136,20 @@ function renderReport() {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Produk</th><th>Gelombang</th><th>Jumlah</th><th>Total</th><th>Dibayar</th><th>Kekurangan</th><th>Status</th><th>Ambil</th><th>Cek Harga</th></tr>
+            <tr>
+              <th>Nota / Tanggal</th>
+              <th>Pemesan</th>
+              <th>Produk & Gelombang</th>
+              <th>Qty</th>
+              <th style="text-align:right;">Total</th>
+              <th style="text-align:right;">Dibayar</th>
+              <th style="text-align:right;">Kekurangan</th>
+              <th>Status Bayar</th>
+              <th>Pengambilan</th>
+              <th>Cek Harga</th>
+            </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="12" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="10" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
