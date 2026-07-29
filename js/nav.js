@@ -2,7 +2,7 @@ const NAV_ITEMS = [
   { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
   { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
   { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
-  { href: "produk.html", icon: "ph-plant", label: "Produk & Gelombang", ownerOnly: true },
+  { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: true },
   { href: "pengguna.html", icon: "ph-users-three", label: "Akun Pengguna", ownerOnly: true },
   { href: "toko.html", icon: "ph-storefront", label: "Profil Toko", ownerOnly: true },
   { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: true },
@@ -26,8 +26,8 @@ function renderSidebar(profile) {
       <div class="sidebar-brand">
         <div class="logo"><i class="ph-bold ph-plant"></i></div>
         <div>
-          <h1>Benih Preorder</h1>
-          <p>Sistem Pesanan</p>
+          <h1>SIMPPO v1.5</h1>
+          <p>Toko Sumber Jaya</p>
         </div>
       </div>
       <div class="sidebar-nav">${navHtml}</div>
