@@ -135,12 +135,10 @@ function buildTimeSeries(orders, granularitas) {
       label = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
     }
     if (!buckets[key]) buckets[key] = { label, count: 0, perProduk: {} };
-    buckets[key].count += 1;
-    const seenProduk = new Set();
     (o.items || []).forEach((it) => {
-      if (seenProduk.has(it.product_name)) return;
-      seenProduk.add(it.product_name);
-      buckets[key].perProduk[it.product_name] = (buckets[key].perProduk[it.product_name] || 0) + 1;
+      const qty = Number(it.jumlah) || 0;
+      buckets[key].count += qty;
+      buckets[key].perProduk[it.product_name] = (buckets[key].perProduk[it.product_name] || 0) + qty;
     });
   });
   return Object.keys(buckets)
@@ -192,7 +190,8 @@ function renderDashboard() {
       perProdukPesanan[it.product_name] = (perProdukPesanan[it.product_name] || 0) + 1;
     });
     const alamatKey = (o.alamat || "Tanpa Alamat").trim() || "Tanpa Alamat";
-    perAlamat[alamatKey] = (perAlamat[alamatKey] || 0) + 1;
+    const orderQty = (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0);
+    perAlamat[alamatKey] = (perAlamat[alamatKey] || 0) + orderQty;
   });
 
   const container = document.getElementById("dashboard-content");
@@ -239,7 +238,7 @@ function renderDashboard() {
         <canvas id="chart-produk" height="220"></canvas>
       </div>
       <div class="card">
-        <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-map-pin"></i></span><h3>Jumlah Pesanan per Alamat (Top 10)</h3></div>
+        <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-map-pin"></i></span><h3>Jumlah Unit Terjual per Alamat (Top 10)</h3></div>
         <canvas id="chart-alamat" height="280"></canvas>
       </div>
     </div>
@@ -298,7 +297,7 @@ function drawTimeSeriesChart(canvasId, timeSeries, produkNames, produkColorMap) 
 
   const datasets = [
     {
-      label: "Total Pesanan",
+      label: "Total Unit",
       data: timeSeries.map((t) => t.count),
       borderColor: "#16a34a",
       backgroundColor: "rgba(22, 163, 74, 0.12)",
