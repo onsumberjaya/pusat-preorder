@@ -193,6 +193,17 @@ function updateSummaryPanel() {
   `;
 }
 
+// Peringatan LEMBUT saja, bukan larangan: stok cuma catatan kasar dari Owner
+// (bisa berubah kapan saja karena ada barang yang laku cash duluan di luar
+// sistem ini), jadi tidak pernah memblokir penyimpanan pesanan. Kalau field
+// stok produk dikosongkan, tidak ada peringatan sama sekali.
+function stockWarningHtml(prod, jumlah) {
+  if (!prod || prod.stok === null || prod.stok === undefined || prod.stok === "") return "";
+  const qty = Number(jumlah) || 0;
+  if (qty <= prod.stok) return "";
+  return `<p style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:5px 8px; margin:6px 0 0;">⚠️ Melebihi stok tercatat untuk ${escapeHtml(prod.nama)} (stok: ${prod.stok}). Tetap bisa disimpan — cek dulu stok fisiknya kalau perlu.</p>`;
+}
+
 function renderLineItems() {
   const wrap = document.getElementById("line-items");
   wrap.innerHTML = lineItems
@@ -225,6 +236,7 @@ function renderLineItems() {
             ${lineItems.length > 1 ? `<a href="#" onclick="removeLine(${line.key}); return false;" style="color:var(--red-600);">Hapus</a>` : ""}
           </span>
         </div>
+        <div id="stock-warning-${line.key}">${stockWarningHtml(prod, line.jumlah)}</div>
       </div>`;
     })
     .join("");
@@ -243,6 +255,8 @@ function updateLine(key, field, value) {
   if (field === "jumlah") {
     const subtotalEl = document.getElementById(`subtotal-${key}`);
     if (subtotalEl) subtotalEl.textContent = `Subtotal: ${formatRupiah(lineSubtotal(line))}`;
+    const warnEl = document.getElementById(`stock-warning-${key}`);
+    if (warnEl) warnEl.innerHTML = stockWarningHtml(getProduct(line.product_id), line.jumlah);
     updateTotalDisplay();
     return;
   }
