@@ -408,6 +408,7 @@ table tbody tr:hover { background: var(--gray-50); }
 .order-item-line .item-produk { font-weight: 400; color: var(--gray-800); }
 .order-item-line .item-gelombang { font-size: 11px; font-weight: 400; color: var(--brand-600); margin-top: 1px; }
 .order-item-line .item-qty { font-weight: 700; color: var(--gray-800); }
+.order-item-line .item-qty-spacer { font-size: 11px; margin-top: 1px; visibility: hidden; }
 
 .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--gray-200); border-top-color: var(--brand-600); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

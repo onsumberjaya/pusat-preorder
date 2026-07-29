@@ -209,7 +209,13 @@ function renderRow(o, isOwner) {
     .join("");
 
   const qtyCell = items
-    .map((it) => `<div class="order-item-line"><div class="item-qty">${it.jumlah}</div></div>`)
+    .map(
+      (it) => `
+      <div class="order-item-line">
+        <div class="item-qty">${it.jumlah}</div>
+        <div class="item-qty-spacer">&nbsp;</div>
+      </div>`
+    )
     .join("");
 
   const belumLunas = o.status_bayar !== "lunas";
