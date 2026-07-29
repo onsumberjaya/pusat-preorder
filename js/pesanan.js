@@ -490,27 +490,41 @@ function renderDetailModal(order) {
         showToast("Jumlah pembayaran tidak valid.", "error");
         return;
       }
+      const profile = window.currentUserProfile;
+      const orderRef = db.collection("orders").doc(order.id);
+      const paymentRef = orderRef.collection("payments").doc();
       try {
-        const profile = window.currentUserProfile;
-        const orderRef = db.collection("orders").doc(order.id);
-        await orderRef.collection("payments").add({
-          tanggal: firebase.firestore.FieldValue.serverTimestamp(),
-          jumlah: amount,
-          catatan: "",
-          created_by: profile.uid,
-          created_by_name: profile.full_name,
-          created_at: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        const newPaid = (order.paid_amount || 0) + amount;
-        await orderRef.update({
-          paid_amount: newPaid,
-          status_bayar: computeStatusBayar(order.total, newPaid),
+        // Pakai transaksi: baca ulang paid_amount TERBARU dari server tepat saat
+        // menyimpan (bukan dari data yang sudah dibuka sejak modal ini dibuka).
+        // Ini mencegah 2 karyawan catat bayar bersamaan saling menimpa angka
+        // paid_amount satu sama lain (race condition / lost update).
+        const updated = await db.runTransaction(async (tx) => {
+          const freshDoc = await tx.get(orderRef);
+          if (!freshDoc.exists) throw new Error("Pesanan tidak ditemukan (mungkin baru saja dihapus).");
+          const freshOrder = freshDoc.data();
+          const freshSisa = freshOrder.total - (freshOrder.paid_amount || 0);
+          if (amount > freshSisa) {
+            throw new Error(
+              `Jumlah melebihi sisa tagihan terbaru (${formatRupiah(freshSisa)}). Kemungkinan ada pembayaran lain yang baru saja tercatat oleh rekan kerja — cek ulang Detail Pesanan.`
+            );
+          }
+          const newPaid = (freshOrder.paid_amount || 0) + amount;
+          const newStatus = computeStatusBayar(freshOrder.total, newPaid);
+          tx.set(paymentRef, {
+            tanggal: firebase.firestore.FieldValue.serverTimestamp(),
+            jumlah: amount,
+            catatan: "",
+            created_by: profile.uid,
+            created_by_name: profile.full_name,
+            created_at: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          tx.update(orderRef, { paid_amount: newPaid, status_bayar: newStatus });
+          return { ...order, paid_amount: newPaid, status_bayar: newStatus };
         });
         showToast("Pembayaran tercatat.", "success");
-        const updated = { ...order, paid_amount: newPaid, status_bayar: computeStatusBayar(order.total, newPaid) };
         renderDetailModal(updated);
       } catch (err) {
-        showToast(friendlyFirebaseError(err), "error");
+        showToast(err.message || friendlyFirebaseError(err), "error");
       }
     });
   }
