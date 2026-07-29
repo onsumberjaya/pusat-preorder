@@ -9,6 +9,22 @@ function resolveWaveLabel(item) {
   return wave ? wave.label : item.wave_label;
 }
 
+// Deteksi (bukan mencegah) kejanggalan harga: bandingkan harga yang tersimpan
+// di pesanan dengan harga gelombang yang berlaku SEKARANG di data produk.
+// Kalau produk/gelombangnya sudah dihapus, tidak bisa dicek -> dianggap aman.
+// Catatan: harga gelombang yang berubah SETELAH pesanan dibuat juga akan
+// membuat pesanan lama tampak "janggal" secara wajar -- itu bukan berarti
+// ada kecurangan, tapi tetap layak dicek manual oleh Owner.
+function hasPriceMismatch(order) {
+  return (order.items || []).some((it) => {
+    const product = allProductsMap[it.product_id];
+    if (!product) return false;
+    const wave = (product.waves || []).find((w) => w.id === it.wave_id);
+    if (!wave) return false;
+    return Number(it.harga_satuan) !== Number(wave.harga);
+  });
+}
+
 window.onAuthReady = function (profile) {
   listenProductFilters();
   listenOrders();
@@ -21,6 +37,7 @@ window.onAuthReady = function (profile) {
   document.getElementById("filter-gelombang").addEventListener("change", renderOrders);
   document.getElementById("filter-bayar").addEventListener("change", renderOrders);
   document.getElementById("filter-ambil").addEventListener("change", renderOrders);
+  document.getElementById("filter-harga-janggal").addEventListener("change", renderOrders);
 
   document.getElementById("bulk-delete-btn").style.display = profile.role === "owner" ? "inline-flex" : "none";
 };
@@ -115,6 +132,7 @@ function getFilteredOrders() {
     if (statusBayar && o.status_bayar !== statusBayar) return false;
     if (statusAmbil === "sudah" && !o.is_diambil) return false;
     if (statusAmbil === "belum" && o.is_diambil) return false;
+    if (document.getElementById("filter-harga-janggal").checked && !hasPriceMismatch(o)) return false;
     return true;
   });
 }
@@ -125,6 +143,7 @@ function resetFilters() {
   document.getElementById("filter-gelombang").innerHTML = '<option value="">Semua Gelombang</option>';
   document.getElementById("filter-bayar").value = "";
   document.getElementById("filter-ambil").value = "";
+  document.getElementById("filter-harga-janggal").checked = false;
   renderOrders();
 }
 
@@ -170,6 +189,7 @@ function renderOrders() {
 function renderRow(o, isOwner) {
   const items = o.items || [];
   const checked = selectedIds.has(o.id) ? "checked" : "";
+  const janggal = hasPriceMismatch(o);
 
   const produkCell = items
     .map(
@@ -191,7 +211,7 @@ function renderRow(o, isOwner) {
     <tr>
       <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
-        <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)}</div>
+        <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
       <td>

@@ -9,6 +9,18 @@ function resolveWaveLabel(item) {
   return wave ? wave.label : item.wave_label;
 }
 
+// Sama seperti di Daftar Pesanan: deteksi (bukan cegah) kejanggalan harga
+// dengan membandingkan ke harga gelombang yang berlaku sekarang.
+function hasPriceMismatch(order) {
+  return (order.items || []).some((it) => {
+    const product = lapProductsMap[it.product_id];
+    if (!product) return false;
+    const wave = (product.waves || []).find((w) => w.id === it.wave_id);
+    if (!wave) return false;
+    return Number(it.harga_satuan) !== Number(wave.harga);
+  });
+}
+
 window.onAuthReady = async function () {
   try {
     const [orderSnap, prodSnap, tokoDoc] = await Promise.all([
@@ -62,6 +74,7 @@ function renderReport() {
     (sum, o) => sum + (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     0
   );
+  const jumlahJanggal = lapFiltered.filter((o) => hasPriceMismatch(o)).length;
 
   document.getElementById("laporan-summary").innerHTML = `
     <div class="grid grid-4">
@@ -69,7 +82,12 @@ function renderReport() {
       <div class="stat-card"><div class="stat-label">Jumlah Produk Dipesan (Unit)</div><div class="stat-value">${totalUnitProduk}</div></div>
       <div class="stat-card brand"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
       <div class="stat-card brand"><div class="stat-label">Sudah Bayar / Kekurangan</div><div class="stat-value" style="font-size:15px; color:#fff;">${formatRupiah(totalTerbayar)} <span style="color:var(--brand-100); font-weight:600;">/</span> <span style="color:#fecaca;">${formatRupiah(totalKekurangan)}</span></div></div>
-    </div>`;
+    </div>
+    ${
+      jumlahJanggal > 0
+        ? `<div class="alert alert-error" style="margin-top:12px;">⚠️ ${jumlahJanggal} pesanan dalam rentang ini punya harga yang berbeda dari harga gelombang yang berlaku sekarang — cek kolom "Cek Harga" di tabel, lalu bandingkan manual ke Detail Pesanan kalau perlu.</div>`
+        : ""
+    }`;
 
   const rows = lapFiltered
     .map(
@@ -86,6 +104,7 @@ function renderReport() {
       <td style="text-align:right;">${formatRupiah(o.total - (o.paid_amount || 0))}</td>
       <td>${STATUS_BAYAR_LABEL[o.status_bayar]}</td>
       <td>${o.is_diambil ? "Sudah" : "Belum"}</td>
+      <td>${hasPriceMismatch(o) ? '<span style="color:var(--red-600); font-weight:600;">⚠️ Janggal</span>' : '<span style="color:var(--gray-400);">OK</span>'}</td>
     </tr>`
     )
     .join("");
@@ -95,9 +114,9 @@ function renderReport() {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Produk</th><th>Gelombang</th><th>Jumlah</th><th>Total</th><th>Dibayar</th><th>Kekurangan</th><th>Status</th><th>Ambil</th></tr>
+            <tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Produk</th><th>Gelombang</th><th>Jumlah</th><th>Total</th><th>Dibayar</th><th>Kekurangan</th><th>Status</th><th>Ambil</th><th>Cek Harga</th></tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="11" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="12" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -122,6 +141,7 @@ function exportExcel() {
     Kekurangan: o.total - (o.paid_amount || 0),
     "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
     "Status Ambil": o.is_diambil ? "Sudah" : "Belum",
+    "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -153,11 +173,12 @@ function exportPdf() {
     formatRupiah(o.total - (o.paid_amount || 0)),
     STATUS_BAYAR_LABEL[o.status_bayar],
     o.is_diambil ? "Sudah" : "Belum",
+    hasPriceMismatch(o) ? "JANGGAL" : "OK",
   ]);
 
   doc.autoTable({
     startY: 27,
-    head: [["No", "Tanggal", "Nama", "Produk", "Gelombang", "Jumlah", "Total", "Dibayar", "Kekurangan", "Status", "Ambil"]],
+    head: [["No", "Tanggal", "Nama", "Produk", "Gelombang", "Jumlah", "Total", "Dibayar", "Kekurangan", "Status", "Ambil", "Cek Harga"]],
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [22, 163, 74] },
