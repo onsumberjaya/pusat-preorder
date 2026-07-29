@@ -28,7 +28,6 @@ function renderSidebar(profile) {
         <div>
           <h1>SIMPPO v1.26.7</h1>
           <p>Toko Sumber Jaya</p>
-          <p>Lamongan, Jawa timur</p>
         </div>
       </div>
       <div class="sidebar-nav">${navHtml}</div>
