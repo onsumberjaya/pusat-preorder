@@ -198,7 +198,7 @@ function renderDashboard() {
       </div>
       <div class="card">
         <h3 style="margin-top:0;">Jumlah Pesanan per Alamat (Top 10)</h3>
-        <canvas id="chart-alamat" height="220"></canvas>
+        <canvas id="chart-alamat" height="280"></canvas>
       </div>
     </div>
 
@@ -239,7 +239,7 @@ function renderDashboard() {
   const topAlamat = Object.entries(perAlamat)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
-  drawBarChart("chart-alamat", Object.fromEntries(topAlamat), "chartAlamat", "#0ea5e9");
+  drawBarChart("chart-alamat", Object.fromEntries(topAlamat), "chartAlamat", "#0ea5e9", true);
 }
 
 function drawTimeSeriesChart(canvasId, timeSeries) {
@@ -277,7 +277,7 @@ function drawTimeSeriesChart(canvasId, timeSeries) {
   });
 }
 
-function drawBarChart(canvasId, dataObj, varName, color) {
+function drawBarChart(canvasId, dataObj, varName, color, horizontal) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return;
   const labels = Object.keys(dataObj);
@@ -297,9 +297,12 @@ function drawBarChart(canvasId, dataObj, varName, color) {
       datasets: [{ label: "Jumlah", data: values, backgroundColor: color, borderRadius: 6 }],
     },
     options: {
+      indexAxis: horizontal ? "y" : "x",
       responsive: true,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      scales: horizontal
+        ? { x: { beginAtZero: true, ticks: { precision: 0 } } }
+        : { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },
   });
 }
