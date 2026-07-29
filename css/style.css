@@ -391,6 +391,23 @@ table tbody tr:hover { background: var(--gray-50); }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
 .toolbar input, .toolbar select { width: auto; min-width: 140px; }
+.toolbar .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-600);
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  margin-bottom: 0;
+}
+.toolbar .filter-chip input[type="checkbox"] { width: auto; flex-shrink: 0; }
 
 .stat-card {
   background: #fff;
