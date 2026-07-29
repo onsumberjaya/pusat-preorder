@@ -18,6 +18,12 @@
       <h1 class="page-title">Laporan & Export</h1>
       <p class="page-subtitle">Filter data lalu export ke Excel atau PDF.</p>
 
+      <div id="fix-nota-card" class="card" style="margin-bottom:16px; display:none; background:#fffbeb; border-color:#fde68a;">
+        <div class="card-heading" style="margin-bottom:8px;"><span class="card-heading-icon" style="background:#fef3c7; color:#b45309;"><i class="ph-bold ph-warning"></i></span><h3 style="font-size:14px;">Nomor Nota Bentrok Terdeteksi</h3></div>
+        <p style="font-size:13px; color:var(--gray-700); margin:0 0 10px;" id="fix-nota-desc">Beberapa pesanan lama masih pakai cara penomoran nota yang lama, sehingga nomornya bisa sama dengan pesanan baru. Klik tombol di bawah untuk menomori ulang pesanan-pesanan lama itu (sekali jalan, aman diulang kapan saja).</p>
+        <button class="btn-secondary btn-sm" id="fix-nota-btn" onclick="fixDuplicateNotaNumbers()">Perbaiki Nomor Nota Sekarang</button>
+      </div>
+
       <div class="card" style="margin-bottom:16px;">
         <div class="grid grid-3">
           <div class="field">

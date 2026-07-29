@@ -42,10 +42,71 @@ window.onAuthReady = async function () {
     });
 
     applyReportFilter();
+    checkDuplicateNotaNumbers();
   } catch (err) {
     document.getElementById("laporan-table").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
   }
 };
+
+// Pesanan lama (dibuat sebelum fitur nomor nota per-tahun ada) belum punya
+// nota_seq -> formatOrderNo() jatuh ke fallback pakai order_no, yang bisa
+// KEBETULAN sama dengan nota_seq pesanan baru (sama-sama mulai dari 1).
+// Fungsi ini cuma mendeteksi & menampilkan tombol perbaikan -- tidak
+// mengubah apa pun sampai Owner klik tombolnya.
+function checkDuplicateNotaNumbers() {
+  const legacyCount = lapOrders.filter((o) => !o.nota_seq || !o.nota_tahun).length;
+  if (legacyCount === 0) return;
+  const card = document.getElementById("fix-nota-card");
+  document.getElementById("fix-nota-desc").textContent =
+    `Ditemukan ${legacyCount} pesanan lama yang masih pakai cara penomoran nota yang lama, sehingga nomornya bisa sama dengan pesanan baru. Klik tombol di bawah untuk menomori ulang pesanan-pesanan lama itu (sekali jalan, aman diulang kapan saja).`;
+  card.style.display = "block";
+}
+
+// Beri nota_tahun/nota_seq yang BENAR (lanjut dari nomor counter yang
+// sedang berjalan, bukan menimpa nomor yang sudah dipakai pesanan baru)
+// ke pesanan-pesanan lama yang belum punya nota_seq, satu per satu supaya
+// tidak tabrakan sesama proses ini sendiri. Diurutkan dari yang paling lama
+// dulu supaya nomor barunya tetap terasa kronologis.
+async function fixDuplicateNotaNumbers() {
+  const legacy = lapOrders
+    .filter((o) => !o.nota_seq || !o.nota_tahun)
+    .sort((a, b) => {
+      const da = a.tanggal && a.tanggal.toDate ? a.tanggal.toDate() : new Date(a.tanggal || 0);
+      const db_ = b.tanggal && b.tanggal.toDate ? b.tanggal.toDate() : new Date(b.tanggal || 0);
+      return da - db_;
+    });
+  if (legacy.length === 0) {
+    showToast("Tidak ada nomor nota yang perlu diperbaiki.", "success");
+    return;
+  }
+  if (!confirm(`Menomori ulang ${legacy.length} pesanan lama supaya tidak bentrok lagi dengan pesanan baru. Lanjutkan?`)) return;
+
+  const btn = document.getElementById("fix-nota-btn");
+  btn.disabled = true;
+  let fixed = 0;
+  for (const order of legacy) {
+    try {
+      const year = order.tanggal
+        ? (order.tanggal.toDate ? order.tanggal.toDate() : new Date(order.tanggal)).getFullYear()
+        : new Date().getFullYear();
+      const ids = await getNextNotaSeq(year);
+      await db.collection("orders").doc(order.id).update({
+        nota_tahun: ids.nota_tahun,
+        nota_seq: ids.nota_seq,
+      });
+      order.nota_tahun = ids.nota_tahun;
+      order.nota_seq = ids.nota_seq;
+      fixed++;
+    } catch (err) {
+      showToast(`Berhenti di tengah jalan (${fixed}/${legacy.length} selesai): ${friendlyFirebaseError(err)}`, "error");
+      btn.disabled = false;
+      return;
+    }
+  }
+  showToast(`${fixed} nomor nota berhasil diperbaiki.`, "success");
+  document.getElementById("fix-nota-card").style.display = "none";
+  applyReportFilter();
+}
 
 function applyReportFilter() {
   const dari = document.getElementById("lap-dari").value;

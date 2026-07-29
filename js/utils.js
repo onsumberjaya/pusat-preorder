@@ -117,6 +117,20 @@ async function getNextOrderIdentifiers() {
   });
 }
 
+// Sama seperti bagian nota_seq di getNextOrderIdentifiers() di atas, tapi
+// BERDIRI SENDIRI (tidak ikut menaikkan counter order_no global) -- dipakai
+// khusus untuk menomori ulang pesanan LAMA yang belum punya nota_seq, supaya
+// tidak memboroskan nomor urut global yang sebenarnya tidak perlu berubah.
+async function getNextNotaSeq(year) {
+  const yearRef = db.collection("counters").doc("nota-" + year);
+  return db.runTransaction(async (tx) => {
+    const yearDoc = await tx.get(yearRef);
+    const nextYear = (yearDoc.exists ? yearDoc.data().seq || 0 : 0) + 1;
+    tx.set(yearRef, { seq: nextYear }, { merge: true });
+    return { nota_tahun: year, nota_seq: nextYear };
+  });
+}
+
 const STATUS_BAYAR_LABEL = {
   lunas: "Lunas",
   cicilan: "Bayar Sebagian",
