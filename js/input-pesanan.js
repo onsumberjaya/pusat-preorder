@@ -66,21 +66,16 @@ function renderForm() {
   const namaVal = isEdit ? editOrderData.nama_pembeli : "";
   const alamatVal = isEdit ? editOrderData.alamat || "" : "";
   const noHpVal = isEdit ? editOrderData.no_hp || "" : "";
+  const catatanVal = isEdit ? editOrderData.catatan || "" : "";
   const tanggalVal = isEdit && editOrderData.tanggal
     ? (editOrderData.tanggal.toDate ? editOrderData.tanggal.toDate() : new Date(editOrderData.tanggal)).toISOString().slice(0, 10)
     : todayInputValue();
 
   container.innerHTML = `
     <form id="order-form">
-      <div class="grid grid-2">
-        <div class="field">
-          <label>Tanggal *</label>
-          <input type="date" id="f-tanggal" required value="${tanggalVal}" />
-        </div>
-        <div class="field">
-          <label>No. HP</label>
-          <input type="text" id="f-nohp" value="${escapeHtml(noHpVal)}" />
-        </div>
+      <div class="field">
+        <label>Tanggal *</label>
+        <input type="date" id="f-tanggal" required value="${tanggalVal}" />
       </div>
       <div class="field">
         <label>Nama Pembeli *</label>
@@ -89,6 +84,14 @@ function renderForm() {
       <div class="field">
         <label>Alamat</label>
         <input type="text" id="f-alamat" value="${escapeHtml(alamatVal)}" />
+      </div>
+      <div class="field">
+        <label>No. HP</label>
+        <input type="text" id="f-nohp" value="${escapeHtml(noHpVal)}" />
+      </div>
+      <div class="field">
+        <label>Catatan</label>
+        <textarea id="f-catatan" rows="2" placeholder="Catatan tambahan (opsional)">${escapeHtml(catatanVal)}</textarea>
       </div>
 
       <div class="field">
@@ -245,6 +248,7 @@ async function handleSubmit(e) {
   const namaPembeli = document.getElementById("f-nama").value.trim();
   const alamat = document.getElementById("f-alamat").value.trim();
   const noHp = document.getElementById("f-nohp").value.trim();
+  const catatan = document.getElementById("f-catatan").value.trim();
   const profile = window.currentUserProfile;
 
   try {
@@ -254,6 +258,7 @@ async function handleSubmit(e) {
         nama_pembeli: namaPembeli,
         alamat,
         no_hp: noHp,
+        catatan,
         items: itemsData,
         total,
         paid_amount: paidAmount,
@@ -274,6 +279,7 @@ async function handleSubmit(e) {
       nama_pembeli: namaPembeli,
       alamat,
       no_hp: noHp,
+      catatan,
       items: itemsData,
       total,
       paid_amount: paidAmount,
