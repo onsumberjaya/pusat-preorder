@@ -16,6 +16,24 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_active != false;
     }
 
+    // Menghitung status bayar dari total & jumlah yang sudah dibayar, harus
+    // sama persis dengan computeStatusBayar() di js/utils.js. Ini mencegah
+    // seseorang mengirim data yang tidak konsisten (mis. status "lunas" tapi
+    // paid_amount masih 0) lewat luar aplikasi (mis. console browser).
+    function computedStatusBayar(total, paid) {
+      return paid <= 0 ? 'belum_bayar' : (paid >= total ? 'lunas' : 'cicilan');
+    }
+
+    // Aturan bentuk data pesanan yang berlaku baik saat dibuat maupun diedit.
+    function isValidOrderShape(data) {
+      return data.nama_pembeli is string && data.nama_pembeli.size() > 0
+        && data.items is list && data.items.size() > 0
+        && data.total is number && data.total >= 0
+        && data.paid_amount is number && data.paid_amount >= 0
+        && data.paid_amount <= data.total
+        && data.status_bayar == computedStatusBayar(data.total, data.paid_amount);
+    }
+
     // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.
     match /config/{docId} {
       allow read: if isSignedIn();
@@ -39,14 +57,36 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && isActiveUser();
     }
 
-    // Pesanan: semua user aktif boleh baca/buat/ubah (input, tandai diambil, catat bayar).
+    // Pesanan: semua user aktif boleh baca/buat/ubah (input, tandai diambil, catat bayar),
+    // TAPI data yang dikirim harus valid & konsisten (total, sisa bayar, status bayar).
     // Hapus pesanan dibatasi khusus Owner.
     match /orders/{orderId} {
-      allow read, create, update: if isSignedIn() && isActiveUser();
+      allow read: if isSignedIn() && isActiveUser();
+
+      // Saat pesanan baru dibuat, created_by wajib sama dengan yang login
+      // (tidak bisa mengaku-aku sebagai karyawan lain).
+      allow create: if isSignedIn() && isActiveUser()
+        && isValidOrderShape(request.resource.data)
+        && request.resource.data.created_by == request.auth.uid;
+
+      // Saat diedit (termasuk update sebagian lewat aksi massal), field
+      // order_no/created_by/created_at tidak boleh berubah — sengaja TIDAK
+      // mengunci created_by == pengguna saat ini, karena karyawan lain memang
+      // boleh mengedit pesanan yang dibuat rekan kerjanya.
+      allow update: if isSignedIn() && isActiveUser()
+        && isValidOrderShape(request.resource.data)
+        && request.resource.data.created_by == resource.data.created_by
+        && request.resource.data.order_no == resource.data.order_no
+        && request.resource.data.created_at == resource.data.created_at;
+
       allow delete: if isOwner();
 
       match /payments/{paymentId} {
-        allow read, create: if isSignedIn() && isActiveUser();
+        allow read: if isSignedIn() && isActiveUser();
+        allow create: if isSignedIn() && isActiveUser()
+          && request.resource.data.jumlah is number
+          && request.resource.data.jumlah > 0
+          && request.resource.data.created_by == request.auth.uid;
         allow update, delete: if isOwner();
       }
     }

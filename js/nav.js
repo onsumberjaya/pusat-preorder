@@ -1,11 +1,11 @@
 const NAV_ITEMS = [
-  { href: "pesanan.html", icon: "📋", label: "Daftar Pesanan", ownerOnly: false },
-  { href: "input-pesanan.html", icon: "➕", label: "Input Pesanan", ownerOnly: false },
-  { href: "dashboard.html", icon: "📊", label: "Dashboard", ownerOnly: false },
-  { href: "produk.html", icon: "🌱", label: "Produk & Gelombang", ownerOnly: true },
-  { href: "pengguna.html", icon: "👥", label: "Akun Pengguna", ownerOnly: true },
-  { href: "toko.html", icon: "🏪", label: "Profil Toko", ownerOnly: true },
-  { href: "laporan.html", icon: "📈", label: "Laporan & Export", ownerOnly: true },
+  { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
+  { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
+  { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
+  { href: "produk.html", icon: "ph-plant", label: "Produk & Gelombang", ownerOnly: true },
+  { href: "pengguna.html", icon: "ph-users-three", label: "Akun Pengguna", ownerOnly: true },
+  { href: "toko.html", icon: "ph-storefront", label: "Profil Toko", ownerOnly: true },
+  { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: true },
 ];
 
 function renderSidebar(profile) {
@@ -15,7 +15,7 @@ function renderSidebar(profile) {
     .map(
       (item) => `
       <a class="nav-item ${item.href === currentPage ? "active" : ""}" href="${item.href}">
-        <span>${item.icon}</span><span>${item.label}</span>
+        <i class="ph-bold ${item.icon}"></i><span>${item.label}</span>
       </a>`
     )
     .join("");
@@ -23,6 +23,13 @@ function renderSidebar(profile) {
   const sidebar = document.getElementById("sidebar");
   if (sidebar) {
     sidebar.innerHTML = `
+      <div class="sidebar-brand">
+        <div class="logo"><i class="ph-bold ph-plant"></i></div>
+        <div>
+          <h1>Benih Preorder</h1>
+          <p>Sistem Pesanan</p>
+        </div>
+      </div>
       <div class="sidebar-nav">${navHtml}</div>
     `;
   }
@@ -44,23 +51,31 @@ function renderTopbar(profile) {
 
   const roleLabel = profile.role === "owner" ? "Owner" : "Karyawan";
   const displayName = escapeHtml(profile.full_name || profile.username || "");
+  const initials = (profile.full_name || profile.username || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
 
   topbar.innerHTML = `
     <div style="display:flex; align-items:center; gap:12px;">
-      <button class="topbar-toggle-btn" onclick="toggleMenu()" title="Sembunyikan/Tampilkan menu">☰</button>
-      <span class="logo">🌾 Benih Preorder</span>
+      <button class="topbar-toggle-btn" onclick="toggleMenu()" title="Sembunyikan/Tampilkan menu"><i class="ph-bold ph-list"></i></button>
+      <span class="logo"><span class="logo-icon"><i class="ph-bold ph-plant"></i></span>Benih Preorder</span>
     </div>
     <div class="account-menu">
       <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
-        <span>👤 Akun</span>
-        <span style="color:var(--gray-400); font-size:11px;">▼</span>
+        <span class="avatar">${escapeHtml(initials)}</span>
+        <span>${displayName || "Akun"}</span>
+        <i class="ph ph-caret-down" style="color:var(--gray-400); font-size:11px;"></i>
       </button>
       <div class="account-menu-panel" id="account-menu-panel">
         <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
           ${roleLabel}${displayName ? " · " + displayName : ""}
         </div>
-        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Ganti Password Saya</button>
-        <button type="button" onclick="closeAccountMenu(); logout();">🚪 Keluar</button>
+        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
+        <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
       </div>
     </div>
   `;
