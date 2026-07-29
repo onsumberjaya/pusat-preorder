@@ -18,6 +18,24 @@ function formatTanggalWaktu(dateLike) {
     " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Kode nota: PO-<2 digit tahun><4 digit nomor urut TAHUN ITU>, reset ke 0001
+// tiap tahun baru. Contoh: pesanan ke-14 di tahun 2026 -> "PO-260014"; pesanan
+// pertama di tahun 2027 -> "PO-270001".
+// Untuk pesanan lama (dibuat sebelum fitur ini ada, belum punya nota_seq/nota_tahun),
+// dipakai fallback: tahun dari field tanggal + nomor urut global (order_no).
+function formatOrderNo(order) {
+  if (order.nota_tahun && order.nota_seq) {
+    return `PO-${String(order.nota_tahun).slice(-2)}${String(order.nota_seq).padStart(4, "0")}`;
+  }
+  const seq = String(order.order_no || 0).padStart(4, "0");
+  let yy = new Date().getFullYear().toString().slice(-2);
+  if (order.tanggal) {
+    const d = order.tanggal.toDate ? order.tanggal.toDate() : new Date(order.tanggal);
+    if (!isNaN(d)) yy = String(d.getFullYear()).slice(-2);
+  }
+  return `PO-${yy}${seq}`;
+}
+
 function todayInputValue() {
   const d = new Date();
   return d.toISOString().slice(0, 10);
@@ -82,15 +100,20 @@ function friendlyFirebaseError(err) {
   return map[code] || (err && err.message) || "Terjadi kesalahan, silakan coba lagi.";
 }
 
-// Menghasilkan nomor pesanan berurutan secara aman memakai transaksi Firestore.
-async function getNextOrderNumber() {
-  const counterRef = db.collection("counters").doc("orders");
+// Menghasilkan nomor pesanan (global, untuk urutan data) SEKALIGUS nomor urut
+// nota per tahun (untuk kode PO-YYNNNN, reset ke 1 tiap tahun baru), sekaligus
+// dalam satu transaksi Firestore supaya konsisten walau 2 orang input bersamaan.
+async function getNextOrderIdentifiers() {
+  const year = new Date().getFullYear();
+  const globalRef = db.collection("counters").doc("orders");
+  const yearRef = db.collection("counters").doc("nota-" + year);
   return db.runTransaction(async (tx) => {
-    const doc = await tx.get(counterRef);
-    const current = doc.exists ? doc.data().seq || 0 : 0;
-    const next = current + 1;
-    tx.set(counterRef, { seq: next }, { merge: true });
-    return next;
+    const [globalDoc, yearDoc] = await Promise.all([tx.get(globalRef), tx.get(yearRef)]);
+    const nextGlobal = (globalDoc.exists ? globalDoc.data().seq || 0 : 0) + 1;
+    const nextYear = (yearDoc.exists ? yearDoc.data().seq || 0 : 0) + 1;
+    tx.set(globalRef, { seq: nextGlobal }, { merge: true });
+    tx.set(yearRef, { seq: nextYear }, { merge: true });
+    return { order_no: nextGlobal, nota_tahun: year, nota_seq: nextYear };
   });
 }
 

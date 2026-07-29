@@ -255,10 +255,12 @@ async function handleSubmit(e) {
       return;
     }
 
-    const orderNo = await getNextOrderNumber();
+    const ids = await getNextOrderIdentifiers();
     const newOrderRef = db.collection("orders").doc();
     await newOrderRef.set({
-      order_no: orderNo,
+      order_no: ids.order_no,
+      nota_tahun: ids.nota_tahun,
+      nota_seq: ids.nota_seq,
       tanggal,
       nama_pembeli: namaPembeli,
       alamat,

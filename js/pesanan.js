@@ -36,6 +36,7 @@ async function loadProductFilters() {
     opt.textContent = p.nama;
     select.appendChild(opt);
   });
+  updateGelombangFilterOptions();
 }
 
 function updateGelombangFilterOptions() {
@@ -84,7 +85,7 @@ function getFilteredOrders() {
 
   return allOrders.filter((o) => {
     if (search) {
-      const hay = `${o.nama_pembeli} ${o.no_hp} ${o.order_no}`.toLowerCase();
+      const hay = `${o.nama_pembeli} ${o.no_hp} ${o.order_no} ${formatOrderNo(o)}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
     if (produkId && !(o.items || []).some((it) => it.product_id === produkId)) return false;
@@ -128,7 +129,7 @@ function renderOrders() {
               <th>Pemesan</th>
               <th>Produk & Gelombang</th>
               <th>Qty</th>
-              <th>Total Tagihan</th>
+              <th style="text-align:right;">Total Tagihan</th>
               <th>Status Bayar</th>
               <th>Pengambilan</th>
               <th>Aksi</th>
@@ -168,7 +169,7 @@ function renderRow(o, isOwner) {
     <tr>
       <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
-        <div style="font-weight:700; color:var(--gray-900);">#${o.order_no}</div>
+        <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
       <td>
@@ -177,7 +178,7 @@ function renderRow(o, isOwner) {
       </td>
       <td style="min-width:170px;">${produkCell}</td>
       <td>${qtyCell}</td>
-      <td>
+      <td style="text-align:right;">
         <div style="font-weight:700; color:var(--gray-900);">${formatRupiah(o.total)}</div>
         ${belumLunas ? `<div style="font-size:11px; color:var(--gray-400); margin-top:1px;">Bayar: ${formatRupiah(o.paid_amount || 0)}</div>` : ""}
       </td>
@@ -320,7 +321,7 @@ function renderDetailModal(order) {
 
   document.getElementById("detail-modal-content").innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-      <h3 style="margin:0;">Pesanan #${order.order_no}</h3>
+      <h3 style="margin:0;">Pesanan ${formatOrderNo(order)}</h3>
       <button class="icon-btn" onclick="closeDetailModal()"><i class="ph ph-x"></i></button>
     </div>
     <p style="color:var(--gray-500); font-size:13px; margin:4px 0 4px;">

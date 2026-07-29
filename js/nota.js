@@ -67,7 +67,7 @@ function renderNota() {
       </div>
       <div style="display:flex; justify-content:space-between; margin-bottom:14px;">
         <div>
-          <div><strong>No. Nota:</strong> #${o.order_no}</div>
+          <div><strong>No. Nota:</strong> ${formatOrderNo(o)}</div>
           <div><strong>Nama:</strong> ${escapeHtml(o.nama_pembeli)}</div>
           <div><strong>Alamat:</strong> ${escapeHtml(o.alamat || "-")}</div>
           <div><strong>No. HP:</strong> ${escapeHtml(o.no_hp || "-")}</div>
@@ -106,7 +106,7 @@ function renderNota() {
         <div style="font-weight:700;">*** PREORDER ***</div>
       </div>
       <hr />
-      <div>No: #${o.order_no}</div>
+      <div>No: ${formatOrderNo(o)}</div>
       <div>Tgl: ${formatTanggal(o.tanggal)}</div>
       <div>Nama: ${escapeHtml(o.nama_pembeli)}</div>
       <div>HP: ${escapeHtml(o.no_hp || "-")}</div>

@@ -66,7 +66,7 @@ function renderReport() {
     .map(
       (o) => `
     <tr>
-      <td>#${o.order_no}</td>
+      <td>${formatOrderNo(o)}</td>
       <td>${formatTanggal(o.tanggal)}</td>
       <td>${escapeHtml(o.nama_pembeli)}</td>
       <td>${(o.items || []).map((it) => `${escapeHtml(it.product_name)} (${it.jumlah})`).join("<br>")}</td>
@@ -100,7 +100,7 @@ function exportExcel() {
     return;
   }
   const data = lapFiltered.map((o) => ({
-    "No Pesanan": o.order_no,
+    "No Pesanan": formatOrderNo(o),
     Tanggal: formatTanggal(o.tanggal),
     Nama: o.nama_pembeli,
     Alamat: o.alamat || "",
@@ -133,7 +133,7 @@ function exportPdf() {
   doc.text(`Laporan Pesanan - dicetak ${formatTanggal(new Date())}`, 14, 21);
 
   const body = lapFiltered.map((o) => [
-    "#" + o.order_no,
+    formatOrderNo(o),
     formatTanggal(o.tanggal),
     o.nama_pembeli,
     (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
