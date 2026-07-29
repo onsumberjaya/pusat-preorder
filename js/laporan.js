@@ -206,19 +206,19 @@ function exportPdf() {
   const body = lapFiltered.map((o) => [
     `${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`,
     `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
-    (o.items || []).map((it) => `${it.product_name} x${it.jumlah} (${resolveWaveLabel(it)})`).join("\n"),
+    (o.items || []).map((it) => `${it.product_name} x${it.jumlah}`).join("\n"),
+    (o.items || []).map((it) => resolveWaveLabel(it)).join("\n"),
     (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     formatRupiah(o.total),
     formatRupiah(o.paid_amount || 0),
     formatRupiah(o.total - (o.paid_amount || 0)),
     STATUS_BAYAR_LABEL[o.status_bayar],
     o.is_diambil ? "Sudah" : "Belum",
-    hasPriceMismatch(o) ? "JANGGAL" : "OK",
   ]);
 
   doc.autoTable({
     startY: 27,
-    head: [["Nota / Tanggal", "Pemesan", "Produk & Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan", "Cek Harga"]],
+    head: [["Nota / Tanggal", "Pemesan", "Produk", "Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan"]],
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [22, 163, 74] },
