@@ -1,10 +1,10 @@
 const NAV_ITEMS = [
-  { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
-  { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
-  { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
-  { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: true },
-  { href: "pengguna.html", icon: "ph-users-three", label: "Akun Pengguna", ownerOnly: true },
   { href: "toko.html", icon: "ph-storefront", label: "Profil Toko", ownerOnly: true },
+  { href: "pengguna.html", icon: "ph-users-three", label: "Akun Pengguna", ownerOnly: true },
+  { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
+  { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
+  { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
+  { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: true },
   { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: true },
 ];
 
