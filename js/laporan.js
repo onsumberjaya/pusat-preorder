@@ -164,17 +164,17 @@ function exportExcel() {
     "No Pesanan": formatOrderNo(o),
     Tanggal: formatTanggal(o.tanggal),
     Nama: o.nama_pembeli,
-    Alamat: o.alamat || "",
     "No HP": o.no_hp || "",
-    Produk: (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
-    Gelombang: [...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "),
-    Jumlah: (o.items || []).reduce((s, it) => s + it.jumlah, 0),
+    Alamat: o.alamat || "",
+    "Produk & Gelombang": (o.items || []).map((it) => `${it.product_name} x${it.jumlah} (${resolveWaveLabel(it)})`).join("\n"),
+    Qty: (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     Total: o.total,
-    "Sudah Dibayar": o.paid_amount || 0,
+    Dibayar: o.paid_amount || 0,
     Kekurangan: o.total - (o.paid_amount || 0),
     "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
-    "Status Ambil": o.is_diambil ? "Sudah" : "Belum",
+    Pengambilan: o.is_diambil ? "Sudah" : "Belum",
     "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
+    Catatan: o.catatan || "",
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -195,11 +195,9 @@ function exportPdf() {
   doc.text(`Laporan Pesanan - dicetak ${formatTanggal(new Date())}`, 14, 21);
 
   const body = lapFiltered.map((o) => [
-    formatOrderNo(o),
-    formatTanggal(o.tanggal),
-    o.nama_pembeli,
-    (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
-    [...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "),
+    `${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`,
+    `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
+    (o.items || []).map((it) => `${it.product_name} x${it.jumlah} (${resolveWaveLabel(it)})`).join("\n"),
     (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     formatRupiah(o.total),
     formatRupiah(o.paid_amount || 0),
@@ -211,7 +209,7 @@ function exportPdf() {
 
   doc.autoTable({
     startY: 27,
-    head: [["No", "Tanggal", "Nama", "Produk", "Gelombang", "Jumlah", "Total", "Dibayar", "Kekurangan", "Status", "Ambil", "Cek Harga"]],
+    head: [["Nota / Tanggal", "Pemesan", "Produk & Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan", "Cek Harga"]],
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [22, 163, 74] },
