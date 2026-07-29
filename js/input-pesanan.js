@@ -72,66 +72,125 @@ function renderForm() {
     : todayInputValue();
 
   container.innerHTML = `
-    <form id="order-form">
-      <div class="field">
-        <label>Tanggal *</label>
-        <input type="date" id="f-tanggal" required value="${tanggalVal}" />
-      </div>
-      <div class="field">
-        <label>Nama Pembeli *</label>
-        <input type="text" id="f-nama" required value="${escapeHtml(namaVal)}" />
-      </div>
-      <div class="field">
-        <label>Alamat</label>
-        <input type="text" id="f-alamat" value="${escapeHtml(alamatVal)}" />
-      </div>
-      <div class="field">
-        <label>No. HP</label>
-        <input type="text" id="f-nohp" value="${escapeHtml(noHpVal)}" />
-      </div>
-      <div class="field">
-        <label>Catatan</label>
-        <textarea id="f-catatan" rows="2" placeholder="Catatan tambahan (opsional)">${escapeHtml(catatanVal)}</textarea>
+    <div class="order-layout">
+      <div class="card order-form-col">
+        <form id="order-form">
+          <div class="field">
+            <label>Tanggal *</label>
+            <input type="date" id="f-tanggal" required value="${tanggalVal}" />
+          </div>
+          <div class="field">
+            <label>Nama Pembeli *</label>
+            <input type="text" id="f-nama" required value="${escapeHtml(namaVal)}" />
+          </div>
+          <div class="field">
+            <label>Alamat</label>
+            <input type="text" id="f-alamat" value="${escapeHtml(alamatVal)}" />
+          </div>
+          <div class="field">
+            <label>No. HP</label>
+            <input type="text" id="f-nohp" value="${escapeHtml(noHpVal)}" />
+          </div>
+          <div class="field">
+            <label>Catatan</label>
+            <textarea id="f-catatan" rows="2" placeholder="Catatan tambahan (opsional)">${escapeHtml(catatanVal)}</textarea>
+          </div>
+
+          <div class="field">
+            <label style="margin-bottom:8px;">Produk Dipesan</label>
+            <div id="line-items"></div>
+            <button type="button" class="btn-secondary btn-sm" onclick="addLine()" style="margin-top:6px;">+ Tambah Produk Lain</button>
+          </div>
+
+          <div class="field">
+            ${
+              isEdit
+                ? `<label>Sudah Dibayar</label>
+                   <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-weight:600;">${formatRupiah(editOrderData.paid_amount || 0)}</div>
+                   <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Tidak bisa diubah di sini supaya riwayat pembayaran tetap tercatat rapi. Untuk mencatat pembayaran baru atau melihat riwayatnya, gunakan tombol "Detail / Bayar" di Daftar Pesanan.</p>`
+                : `<label>Uang Muka / Bayar Sekarang (Rp) *</label>
+                   <input type="number" id="f-bayar" min="0" value="0" required />
+                   <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Isi 0 jika belum bayar sama sekali, atau isi sesuai total untuk status Lunas.</p>`
+            }
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--gray-200); padding-top:14px; margin-top:6px;">
+            <span style="font-size:16px; font-weight:600;">Total Pesanan</span>
+            <span id="f-total" style="font-size:20px; font-weight:700; color:var(--brand-700);">Rp 0</span>
+          </div>
+
+          <div id="order-form-alert" style="margin-top:12px;"></div>
+
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="submit" class="btn-primary" style="flex:1; justify-content:center; padding:12px;" id="submit-btn">
+              ${isEdit ? "Simpan Perubahan" : "Simpan Pesanan"}
+            </button>
+            ${isEdit ? `<a href="pesanan.html" class="btn-secondary" style="padding:12px 18px;">Batal</a>` : ""}
+          </div>
+        </form>
       </div>
 
-      <div class="field">
-        <label style="margin-bottom:8px;">Produk Dipesan</label>
-        <div id="line-items"></div>
-        <button type="button" class="btn-secondary btn-sm" onclick="addLine()" style="margin-top:6px;">+ Tambah Produk Lain</button>
+      <div class="card order-summary-col">
+        <h3 style="margin-top:0; margin-bottom:14px; font-size:15px;">Ringkasan Pesanan</h3>
+        <div id="summary-body"></div>
       </div>
-
-      <div class="field">
-        ${
-          isEdit
-            ? `<label>Sudah Dibayar</label>
-               <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-weight:600;">${formatRupiah(editOrderData.paid_amount || 0)}</div>
-               <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Tidak bisa diubah di sini supaya riwayat pembayaran tetap tercatat rapi. Untuk mencatat pembayaran baru atau melihat riwayatnya, gunakan tombol "Detail / Bayar" di Daftar Pesanan.</p>`
-            : `<label>Uang Muka / Bayar Sekarang (Rp) *</label>
-               <input type="number" id="f-bayar" min="0" value="0" required />
-               <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Isi 0 jika belum bayar sama sekali, atau isi sesuai total untuk status Lunas.</p>`
-        }
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--gray-200); padding-top:14px; margin-top:6px;">
-        <span style="font-size:16px; font-weight:600;">Total Pesanan</span>
-        <span id="f-total" style="font-size:20px; font-weight:700; color:var(--brand-700);">Rp 0</span>
-      </div>
-
-      <div id="order-form-alert" style="margin-top:12px;"></div>
-
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button type="submit" class="btn-primary" style="flex:1; justify-content:center; padding:12px;" id="submit-btn">
-          ${isEdit ? "Simpan Perubahan" : "Simpan Pesanan"}
-        </button>
-        ${isEdit ? `<a href="pesanan.html" class="btn-secondary" style="padding:12px 18px;">Batal</a>` : ""}
-      </div>
-    </form>
+    </div>
   `;
 
   renderLineItems();
   document.getElementById("order-form").addEventListener("submit", handleSubmit);
   const bayarInput = document.getElementById("f-bayar");
   if (bayarInput) bayarInput.addEventListener("input", updateTotalDisplay);
+  document.getElementById("f-nama").addEventListener("input", updateSummaryPanel);
+  updateSummaryPanel();
+}
+
+function updateSummaryPanel() {
+  const panel = document.getElementById("summary-body");
+  if (!panel) return;
+
+  const namaEl = document.getElementById("f-nama");
+  const nama = namaEl ? namaEl.value.trim() : "";
+  const total = grandTotal();
+  const isEdit = !!editOrderId;
+  const bayarInput = document.getElementById("f-bayar");
+  const paidAmount = isEdit ? editOrderData.paid_amount || 0 : bayarInput ? Number(bayarInput.value) || 0 : 0;
+  const sisa = total - paidAmount;
+  const status = computeStatusBayar(total, paidAmount);
+
+  const validLines = lineItems.filter((l) => l.product_id && l.wave_id && Number(l.jumlah) > 0);
+  const itemsHtml = validLines.length
+    ? validLines
+        .map((l) => {
+          const prod = getProduct(l.product_id);
+          const wave = getWave(prod, l.wave_id);
+          return `
+        <div class="summary-item-row">
+          <span style="color:var(--gray-700);">
+            ${escapeHtml(prod ? prod.nama : "")} <span style="color:var(--gray-400);">x${escapeHtml(l.jumlah)}</span>
+            <div style="font-size:11px; color:var(--brand-600);">${escapeHtml(wave ? wave.label : "")}</div>
+          </span>
+          <span style="font-weight:600; white-space:nowrap;">${formatRupiah(lineSubtotal(l))}</span>
+        </div>`;
+        })
+        .join("")
+    : `<div style="font-size:12.5px; color:var(--gray-400); padding:8px 0;">Belum ada produk dipilih.</div>`;
+
+  panel.innerHTML = `
+    <div style="font-size:12.5px; color:var(--gray-500); margin-bottom:2px;">Pemesan</div>
+    <div style="font-weight:700; margin-bottom:10px; color:var(--gray-900);">${escapeHtml(nama || "-")}</div>
+    ${itemsHtml}
+    <div style="display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--gray-200); font-size:14px;">
+      <span>Total</span><strong>${formatRupiah(total)}</strong>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--gray-500); margin-top:4px;">
+      <span>${isEdit ? "Sudah Dibayar" : "Bayar Sekarang"}</span><span>${formatRupiah(paidAmount)}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:2px; ${sisa > 0 ? "color:var(--red-600); font-weight:600;" : "color:var(--gray-500);"}">
+      <span>Sisa</span><span>${formatRupiah(sisa)}</span>
+    </div>
+    <div style="margin-top:10px;"><span class="badge ${STATUS_BAYAR_BADGE[status]}">${STATUS_BAYAR_LABEL[status].toUpperCase()}</span></div>
+  `;
 }
 
 function renderLineItems() {
@@ -204,6 +263,7 @@ function updateTotalDisplay() {
   const total = grandTotal();
   const totalEl = document.getElementById("f-total");
   if (totalEl) totalEl.textContent = formatRupiah(total);
+  updateSummaryPanel();
 }
 
 async function handleSubmit(e) {

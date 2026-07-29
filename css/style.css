@@ -315,6 +315,17 @@ input:focus, select:focus, textarea:focus {
 }
 .field { margin-bottom: 15px; }
 
+.order-layout { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+@media (min-width: 980px) {
+  .order-layout { grid-template-columns: 1fr 320px; }
+  .order-summary-col { position: sticky; top: 20px; }
+}
+@media (max-width: 979px) {
+  .order-summary-col { display: none; }
+}
+.summary-item-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 7px 0; border-bottom: 1px solid var(--gray-100); }
+.summary-item-row:last-of-type { border-bottom: none; }
+
 button, .btn {
   cursor: pointer;
   border: none;
