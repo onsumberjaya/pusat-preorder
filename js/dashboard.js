@@ -198,16 +198,31 @@ function renderDashboard() {
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `
     <div class="grid grid-4" style="margin-bottom:20px;">
-      <div class="stat-card brand"><div class="stat-label">Jumlah Pembeli</div><div class="stat-value">${pembeliUnik}</div></div>
-      <div class="stat-card brand"><div class="stat-label">Total Pesanan (Unit Produk)</div><div class="stat-value">${totalUnitProduk}</div><div style="font-size:11px; color:var(--brand-100); margin-top:2px;">dari ${jumlahNota} nota</div></div>
-      <div class="stat-card brand"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
-      <div class="stat-card"><div class="stat-label">Lunas / Belum Lunas</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahLunas}</span> / <span style="color:var(--red-600);">${jumlahBelumLunas}</span></div></div>
-      <div class="stat-card"><div class="stat-label">Sudah Diambil / Belum Diambil</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahDiambil}</span> / <span style="color:var(--red-600);">${jumlahBelumDiambil}</span></div></div>
+      <div class="stat-card brand">
+        <div class="stat-icon"><i class="ph-bold ph-users-three"></i></div>
+        <div class="stat-body"><div class="stat-label">Jumlah Pembeli</div><div class="stat-value">${pembeliUnik}</div></div>
+      </div>
+      <div class="stat-card brand">
+        <div class="stat-icon"><i class="ph-bold ph-package"></i></div>
+        <div class="stat-body"><div class="stat-label">Total Pesanan (Unit Produk)</div><div class="stat-value">${totalUnitProduk}</div><div style="font-size:11px; color:var(--brand-100); margin-top:2px;">dari ${jumlahNota} nota</div></div>
+      </div>
+      <div class="stat-card brand">
+        <div class="stat-icon"><i class="ph-bold ph-wallet"></i></div>
+        <div class="stat-body"><div class="stat-label">Total Uang</div><div class="stat-value" style="font-size:16px;">${formatRupiah(totalUang)}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="ph-bold ph-check-circle"></i></div>
+        <div class="stat-body"><div class="stat-label">Lunas / Belum Lunas</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahLunas}</span> / <span style="color:var(--red-600);">${jumlahBelumLunas}</span></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="ph-bold ph-basket"></i></div>
+        <div class="stat-body"><div class="stat-label">Sudah Diambil / Belum Diambil</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahDiambil}</span> / <span style="color:var(--red-600);">${jumlahBelumDiambil}</span></div></div>
+      </div>
     </div>
 
     <div class="card" style="margin-top:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-        <h3 style="margin:0;">Pesanan Masuk</h3>
+        <div class="card-heading"><span class="card-heading-icon"><i class="ph-bold ph-trend-up"></i></span><h3>Pesanan Masuk</h3></div>
         <select id="chart-granularitas" style="width:auto; min-width:140px;">
           <option value="harian" ${dashGranularitas === "harian" ? "selected" : ""}>Harian</option>
           <option value="mingguan" ${dashGranularitas === "mingguan" ? "selected" : ""}>Mingguan</option>
@@ -220,17 +235,17 @@ function renderDashboard() {
 
     <div class="grid grid-2" style="margin-top:20px;">
       <div class="card">
-        <h3 style="margin-top:0;">Jumlah Pesanan per Produk</h3>
+        <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-chart-bar"></i></span><h3>Jumlah Pesanan per Produk</h3></div>
         <canvas id="chart-produk" height="220"></canvas>
       </div>
       <div class="card">
-        <h3 style="margin-top:0;">Jumlah Pesanan per Alamat (Top 10)</h3>
+        <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-map-pin"></i></span><h3>Jumlah Pesanan per Alamat (Top 10)</h3></div>
         <canvas id="chart-alamat" height="280"></canvas>
       </div>
     </div>
 
     <div class="card" style="margin-top:20px;">
-      <h3 style="margin-top:0;">Detail Total per Produk</h3>
+      <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-list-numbers"></i></span><h3>Detail Total per Produk</h3></div>
       <table class="table">
         <thead>
           <tr><th>Produk</th><th>Jumlah Pesanan</th><th>Jumlah Unit</th></tr>
@@ -242,9 +257,9 @@ function renderDashboard() {
               : Object.keys(perProduk)
                   .sort((a, b) => perProduk[b] - perProduk[a])
                   .map(
-                    (nama) => `
+                    (nama, idx) => `
                     <tr>
-                      <td>${escapeHtml(nama)}</td>
+                      <td>${escapeHtml(nama)}${idx === 0 ? '<span class="rank-badge"><i class="ph-bold ph-trophy"></i> Terlaris</span>' : ""}</td>
                       <td>${perProdukPesanan[nama]}</td>
                       <td>${perProduk[nama]}</td>
                     </tr>`
