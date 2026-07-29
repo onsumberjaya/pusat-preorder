@@ -316,6 +316,11 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--brand-500);
   box-shadow: 0 0 0 3px var(--brand-100);
 }
+input:disabled, select:disabled, textarea:disabled {
+  background: var(--gray-50);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
 input[type="checkbox"], input[type="radio"] {
   width: 16px;
   height: 16px;

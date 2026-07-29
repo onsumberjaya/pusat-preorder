@@ -22,18 +22,22 @@
         <form id="toko-form">
           <div class="field">
             <label>Nama Toko *</label>
-            <input type="text" id="toko-nama" required />
+            <input type="text" id="toko-nama" required disabled />
           </div>
           <div class="field">
             <label>Alamat</label>
-            <textarea id="toko-alamat" rows="2"></textarea>
+            <textarea id="toko-alamat" rows="2" disabled></textarea>
           </div>
           <div class="field">
             <label>No. HP / Telepon</label>
-            <input type="text" id="toko-nohp" />
+            <input type="text" id="toko-nohp" disabled />
           </div>
           <div id="toko-alert"></div>
-          <button type="submit" class="btn-primary" id="toko-submit">Simpan</button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-secondary" id="toko-edit-btn" onclick="enableTokoEdit()"><i class="ph ph-pencil-simple"></i> Edit</button>
+            <button type="submit" class="btn-primary" id="toko-submit" style="display:none;">Simpan</button>
+            <button type="button" class="btn-secondary" id="toko-cancel-btn" style="display:none;" onclick="cancelTokoEdit()">Batal</button>
+          </div>
         </form>
       </div>
     </main>
