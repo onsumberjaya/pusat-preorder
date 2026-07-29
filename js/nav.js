@@ -26,8 +26,8 @@ function renderSidebar(profile) {
       <div class="sidebar-brand">
         <div class="logo"><i class="ph-bold ph-plant"></i></div>
         <div>
-          <h1>SIMPPO <span class="app-version">v1.26.7</span></h1>
-          <p>Toko Sumber Jaya</p>
+          <h1>Toko Sumber Jaya</h1>
+          <p>SIMPPO <span class="app-version">v1.26.7</span></p>
         </div>
       </div>
       <div class="sidebar-nav">${navHtml}</div>
