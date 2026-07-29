@@ -81,11 +81,11 @@ function renderForm() {
           </div>
           <div class="field">
             <label>Nama Pembeli *</label>
-            <input type="text" id="f-nama" required value="${escapeHtml(namaVal)}" />
+            <input type="text" id="f-nama" required minlength="3" value="${escapeHtml(namaVal)}" />
           </div>
           <div class="field">
-            <label>Alamat</label>
-            <input type="text" id="f-alamat" value="${escapeHtml(alamatVal)}" />
+            <label>Alamat *</label>
+            <input type="text" id="f-alamat" required minlength="3" value="${escapeHtml(alamatVal)}" />
           </div>
           <div class="field">
             <label>No. HP</label>
@@ -270,6 +270,20 @@ async function handleSubmit(e) {
   e.preventDefault();
   const alertBox = document.getElementById("order-form-alert");
   alertBox.innerHTML = "";
+
+  const namaCek = document.getElementById("f-nama").value.trim();
+  const alamatCek = document.getElementById("f-alamat").value.trim();
+  if (namaCek.length < 3) {
+    alertBox.innerHTML = `<div class="alert alert-error">Nama Pembeli wajib diisi, minimal 3 karakter.</div>`;
+    document.getElementById("f-nama").focus();
+    return;
+  }
+  if (alamatCek.length < 3) {
+    alertBox.innerHTML = `<div class="alert alert-error">Alamat wajib diisi, minimal 3 karakter.</div>`;
+    document.getElementById("f-alamat").focus();
+    return;
+  }
+
   const validLines = lineItems.filter((l) => l.product_id && l.wave_id && Number(l.jumlah) > 0);
   if (validLines.length === 0) {
     alertBox.innerHTML = `<div class="alert alert-error">Minimal pilih 1 produk dengan jumlah yang valid.</div>`;
