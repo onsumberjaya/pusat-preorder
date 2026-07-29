@@ -66,16 +66,16 @@ function renderNota() {
         <p style="margin:6px 0 0; font-weight:700; letter-spacing:1px;">NOTA PREORDER</p>
       </div>
       <div style="display:flex; justify-content:space-between; margin-bottom:14px;">
-        <div>
-          <div><strong>No. Nota:</strong> ${formatOrderNo(o)}</div>
-          <div><strong>Nama:</strong> ${escapeHtml(o.nama_pembeli)}</div>
-          <div><strong>Alamat:</strong> ${escapeHtml(o.alamat || "-")}</div>
-          <div><strong>No. HP:</strong> ${escapeHtml(o.no_hp || "-")}</div>
-        </div>
-        <div style="text-align:right;">
-          <div><strong>Tanggal:</strong> ${formatTanggal(o.tanggal)}</div>
-          <div><strong>Status:</strong> ${STATUS_BAYAR_LABEL[o.status_bayar]}</div>
-        </div>
+        <table style="border-collapse:collapse;">
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. Nota</td><td style="padding:1px 0;">: ${formatOrderNo(o)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Nama</td><td style="padding:1px 0;">: ${escapeHtml(o.nama_pembeli)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">Alamat</td><td style="padding:1px 0;">: ${escapeHtml(o.alamat || "-")}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. HP</td><td style="padding:1px 0;">: ${escapeHtml(o.no_hp || "-")}</td></tr>
+        </table>
+        <table style="border-collapse:collapse;">
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Tanggal</td><td style="padding:1px 0;">: ${formatTanggal(o.tanggal)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Status</td><td style="padding:1px 0;">: ${STATUS_BAYAR_LABEL[o.status_bayar]}</td></tr>
+        </table>
       </div>
       <table style="width:100%; border-collapse:collapse;">
         <thead>
