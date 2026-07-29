@@ -2,6 +2,8 @@ let dashOrders = [];
 let dashProducts = [];
 let chartProduk = null;
 let chartAlamat = null;
+let chartWaktu = null;
+let dashGranularitas = "harian";
 
 function resolveWaveLabel(item) {
   const product = dashProducts.find((p) => p.id === item.product_id);
@@ -107,6 +109,39 @@ function filteredDashOrders() {
   });
 }
 
+// Kelompokkan pesanan berdasarkan tanggal jadi titik-titik data harian/mingguan/bulanan
+// untuk grafik tren "Pesanan Masuk". Rentang tanggalnya sendiri sudah diatur lewat
+// filter Semua Waktu/Hari Ini/7 Hari Terakhir/Bulan Ini/Rentang Tanggal di atas.
+function buildTimeSeries(orders, granularitas) {
+  const buckets = {};
+  orders.forEach((o) => {
+    const d = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
+    if (isNaN(d)) return;
+    let key, label;
+    if (granularitas === "bulanan") {
+      key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      label = d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+    } else if (granularitas === "mingguan") {
+      const monday = new Date(d);
+      const offset = (monday.getDay() + 6) % 7; // 0 = Senin
+      monday.setDate(monday.getDate() - offset);
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      key = monday.toISOString().slice(0, 10);
+      label = `${monday.getDate()}/${monday.getMonth() + 1}-${sunday.getDate()}/${sunday.getMonth() + 1}`;
+    } else {
+      key = d.toISOString().slice(0, 10);
+      label = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+    }
+    if (!buckets[key]) buckets[key] = { label, count: 0 };
+    buckets[key].count += 1;
+  });
+  return Object.keys(buckets)
+    .sort()
+    .map((key) => buckets[key]);
+}
+
 function renderDashboard() {
   const orders = filteredDashOrders();
   const jumlahNota = orders.length;
@@ -143,7 +178,20 @@ function renderDashboard() {
       <div class="stat-card"><div class="stat-label">Sudah Diambil / Belum Diambil</div><div class="stat-value" style="font-size:16px;"><span style="color:var(--brand-700);">${jumlahDiambil}</span> / <span style="color:var(--red-600);">${jumlahBelumDiambil}</span></div></div>
     </div>
 
-    <div class="grid grid-2">
+    <div class="card" style="margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+        <h3 style="margin:0;">Pesanan Masuk</h3>
+        <select id="chart-granularitas" style="width:auto; min-width:140px;">
+          <option value="harian" ${dashGranularitas === "harian" ? "selected" : ""}>Harian</option>
+          <option value="mingguan" ${dashGranularitas === "mingguan" ? "selected" : ""}>Mingguan</option>
+          <option value="bulanan" ${dashGranularitas === "bulanan" ? "selected" : ""}>Bulanan</option>
+        </select>
+      </div>
+      <p style="font-size:12px; color:var(--gray-400); margin:-4px 0 12px;">Tips: pakai filter "Rentang Tanggal..." di atas untuk atur sendiri periode yang ditampilkan.</p>
+      <canvas id="chart-waktu" height="90"></canvas>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:20px;">
       <div class="card">
         <h3 style="margin-top:0;">Jumlah Pesanan per Produk</h3>
         <canvas id="chart-produk" height="220"></canvas>
@@ -181,11 +229,52 @@ function renderDashboard() {
     </div>
   `;
 
+  drawTimeSeriesChart("chart-waktu", buildTimeSeries(orders, dashGranularitas));
+  document.getElementById("chart-granularitas").addEventListener("change", (e) => {
+    dashGranularitas = e.target.value;
+    renderDashboard();
+  });
+
   drawBarChart("chart-produk", perProduk, "chartProduk", "#16a34a");
   const topAlamat = Object.entries(perAlamat)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
   drawBarChart("chart-alamat", Object.fromEntries(topAlamat), "chartAlamat", "#0ea5e9");
+}
+
+function drawTimeSeriesChart(canvasId, timeSeries) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  if (chartWaktu) chartWaktu.destroy();
+
+  if (timeSeries.length === 0) {
+    ctx.parentElement.insertAdjacentHTML("beforeend", '<p style="color:var(--gray-400); font-size:13px;">Belum ada data.</p>');
+    return;
+  }
+
+  chartWaktu = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: timeSeries.map((t) => t.label),
+      datasets: [
+        {
+          label: "Jumlah Pesanan",
+          data: timeSeries.map((t) => t.count),
+          borderColor: "#16a34a",
+          backgroundColor: "rgba(22, 163, 74, 0.12)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: "#16a34a",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
 }
 
 function drawBarChart(canvasId, dataObj, varName, color) {
