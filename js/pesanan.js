@@ -39,6 +39,12 @@ window.onAuthReady = function (profile) {
   document.getElementById("filter-ambil").addEventListener("change", renderOrders);
   document.getElementById("filter-harga-janggal").addEventListener("change", renderOrders);
 
+  const anomaliCheckbox = document.getElementById("filter-harga-janggal");
+  const anomaliChip = document.getElementById("anomali-chip");
+  anomaliCheckbox.addEventListener("change", () => {
+    anomaliChip.classList.toggle("active", anomaliCheckbox.checked);
+  });
+
   document.getElementById("bulk-delete-btn").style.display = profile.role === "owner" ? "inline-flex" : "none";
 };
 
@@ -144,6 +150,7 @@ function resetFilters() {
   document.getElementById("filter-bayar").value = "";
   document.getElementById("filter-ambil").value = "";
   document.getElementById("filter-harga-janggal").checked = false;
+  document.getElementById("anomali-chip").classList.remove("active");
   renderOrders();
 }
 

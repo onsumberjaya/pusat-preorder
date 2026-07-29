@@ -425,14 +425,23 @@ table tbody tr:hover { background: var(--gray-50); }
   white-space: nowrap;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--red-600);
+  color: var(--gray-500);
   background: #fff;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
   margin-bottom: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.toolbar .filter-chip input[type="checkbox"] { margin: 0; }
+.toolbar .filter-chip input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.toolbar .filter-chip.active { color: var(--red-600); background: var(--red-50); border-color: #fecaca; }
 
 .stat-card {
   background: #fff;
