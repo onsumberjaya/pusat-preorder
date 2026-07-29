@@ -98,9 +98,15 @@ function renderForm() {
       </div>
 
       <div class="field">
-        <label>${isEdit ? "Sudah Dibayar (Rp)" : "Uang Muka / Bayar Sekarang (Rp)"} *</label>
-        <input type="number" id="f-bayar" min="0" value="${isEdit ? editOrderData.paid_amount || 0 : 0}" required />
-        <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Isi 0 jika belum bayar sama sekali, atau isi sesuai total untuk status Lunas.</p>
+        ${
+          isEdit
+            ? `<label>Sudah Dibayar</label>
+               <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-weight:600;">${formatRupiah(editOrderData.paid_amount || 0)}</div>
+               <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Tidak bisa diubah di sini supaya riwayat pembayaran tetap tercatat rapi. Untuk mencatat pembayaran baru atau melihat riwayatnya, gunakan tombol "Detail / Bayar" di Daftar Pesanan.</p>`
+            : `<label>Uang Muka / Bayar Sekarang (Rp) *</label>
+               <input type="number" id="f-bayar" min="0" value="0" required />
+               <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">Isi 0 jika belum bayar sama sekali, atau isi sesuai total untuk status Lunas.</p>`
+        }
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--gray-200); padding-top:14px; margin-top:6px;">
@@ -121,7 +127,8 @@ function renderForm() {
 
   renderLineItems();
   document.getElementById("order-form").addEventListener("submit", handleSubmit);
-  document.getElementById("f-bayar").addEventListener("input", updateTotalDisplay);
+  const bayarInput = document.getElementById("f-bayar");
+  if (bayarInput) bayarInput.addEventListener("input", updateTotalDisplay);
 }
 
 function renderLineItems() {
@@ -207,9 +214,11 @@ async function handleSubmit(e) {
   }
 
   const total = grandTotal();
-  const paidAmount = Number(document.getElementById("f-bayar").value) || 0;
+  const paidAmount = editOrderId ? editOrderData.paid_amount || 0 : Number(document.getElementById("f-bayar").value) || 0;
   if (paidAmount > total) {
-    alertBox.innerHTML = `<div class="alert alert-error">Jumlah bayar tidak boleh melebihi total pesanan.</div>`;
+    alertBox.innerHTML = editOrderId
+      ? `<div class="alert alert-error">Total pesanan baru (${formatRupiah(total)}) lebih kecil dari yang sudah dibayar (${formatRupiah(paidAmount)}). Kurangi jumlah dulu, atau sesuaikan pembayarannya lewat Detail Pesanan di Daftar Pesanan.</div>`
+      : `<div class="alert alert-error">Jumlah bayar tidak boleh melebihi total pesanan.</div>`;
     return;
   }
 
