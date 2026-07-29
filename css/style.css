@@ -248,6 +248,8 @@ main.content {
   padding: 28px;
   width: 100%;
   min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 860px) {
