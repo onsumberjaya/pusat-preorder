@@ -3,8 +3,14 @@ let allProductsMap = {};
 let selectedIds = new Set();
 let unsubscribeOrders = null;
 
+function resolveWaveLabel(item) {
+  const product = allProductsMap[item.product_id];
+  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
+  return wave ? wave.label : item.wave_label;
+}
+
 window.onAuthReady = function (profile) {
-  loadProductFilters();
+  listenProductFilters();
   listenOrders();
 
   document.getElementById("filter-search").addEventListener("input", debounceRender);
@@ -25,23 +31,37 @@ function debounceRender() {
   debounceTimer = setTimeout(renderOrders, 200);
 }
 
-async function loadProductFilters() {
-  const snap = await db.collection("products").orderBy("nama").get();
+function listenProductFilters() {
   const select = document.getElementById("filter-produk");
-  snap.docs.forEach((d) => {
-    const p = { id: d.id, ...d.data() };
-    allProductsMap[p.id] = p;
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.nama;
-    select.appendChild(opt);
-  });
-  updateGelombangFilterOptions();
+  db.collection("products")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        const currentProductId = select.value;
+        allProductsMap = {};
+        select.innerHTML = '<option value="">Semua Produk</option>';
+        snap.docs.forEach((d) => {
+          const p = { id: d.id, ...d.data() };
+          allProductsMap[p.id] = p;
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = p.nama;
+          select.appendChild(opt);
+        });
+        if (allProductsMap[currentProductId]) select.value = currentProductId;
+        updateGelombangFilterOptions();
+        renderOrders();
+      },
+      (err) => {
+        showToast("Gagal memuat produk: " + friendlyFirebaseError(err), "error");
+      }
+    );
 }
 
 function updateGelombangFilterOptions() {
   const productId = document.getElementById("filter-produk").value;
   const select = document.getElementById("filter-gelombang");
+  const currentValue = select.value;
   select.innerHTML = '<option value="">Semua Gelombang</option>';
   const product = allProductsMap[productId];
   if (product) {
@@ -62,6 +82,8 @@ function updateGelombangFilterOptions() {
       select.appendChild(opt);
     });
   }
+  const optionValues = Array.from(select.options).map((o) => o.value);
+  if (optionValues.includes(currentValue)) select.value = currentValue;
 }
 
 function listenOrders() {
@@ -89,7 +111,7 @@ function getFilteredOrders() {
       if (!hay.includes(search)) return false;
     }
     if (produkId && !(o.items || []).some((it) => it.product_id === produkId)) return false;
-    if (gelombangLabel && !(o.items || []).some((it) => it.wave_label === gelombangLabel)) return false;
+    if (gelombangLabel && !(o.items || []).some((it) => resolveWaveLabel(it) === gelombangLabel)) return false;
     if (statusBayar && o.status_bayar !== statusBayar) return false;
     if (statusAmbil === "sudah" && !o.is_diambil) return false;
     if (statusAmbil === "belum" && o.is_diambil) return false;
@@ -154,7 +176,7 @@ function renderRow(o, isOwner) {
       (it) => `
       <div class="order-item-line">
         <div class="item-produk">${escapeHtml(it.product_name)}</div>
-        <div class="item-gelombang">${escapeHtml(it.wave_label)}</div>
+        <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it))}</div>
       </div>`
     )
     .join("");
@@ -310,7 +332,7 @@ function renderDetailModal(order) {
     .map(
       (it) => `
     <tr>
-      <td>${escapeHtml(it.product_name)} <span style="color:var(--gray-400);">(${escapeHtml(it.wave_label)})</span></td>
+      <td>${escapeHtml(it.product_name)} <span style="color:var(--gray-400);">(${escapeHtml(resolveWaveLabel(it))})</span></td>
       <td style="text-align:center;">${it.jumlah}</td>
       <td style="text-align:right;">${formatRupiah(it.subtotal)}</td>
     </tr>`

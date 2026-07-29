@@ -3,29 +3,60 @@ let dashProducts = [];
 let chartProduk = null;
 let chartAlamat = null;
 
+function resolveWaveLabel(item) {
+  const product = dashProducts.find((p) => p.id === item.product_id);
+  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
+  return wave ? wave.label : item.wave_label;
+}
+
+function updateGelombangFilterOptionsDash() {
+  const gelSelect = document.getElementById("filter-gelombang-dash");
+  const currentValue = gelSelect.value;
+  const labels = new Set();
+  dashProducts.forEach((p) => (p.waves || []).forEach((w) => labels.add(w.label)));
+  gelSelect.innerHTML = '<option value="">Semua Gelombang</option>';
+  labels.forEach((label) => {
+    const opt = document.createElement("option");
+    opt.value = label;
+    opt.textContent = label;
+    gelSelect.appendChild(opt);
+  });
+  if (labels.has(currentValue)) gelSelect.value = currentValue;
+}
+
 window.onAuthReady = async function () {
-  try {
-    const [orderSnap, prodSnap] = await Promise.all([
-      db.collection("orders").get(),
-      db.collection("products").orderBy("nama").get(),
-    ]);
-    dashOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    dashProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  let ordersLoaded = false;
+  let productsLoaded = false;
 
-    const gelSelect = document.getElementById("filter-gelombang-dash");
-    const labels = new Set();
-    dashProducts.forEach((p) => (p.waves || []).forEach((w) => labels.add(w.label)));
-    labels.forEach((label) => {
-      const opt = document.createElement("option");
-      opt.value = label;
-      opt.textContent = label;
-      gelSelect.appendChild(opt);
-    });
-
+  function tryRender() {
+    if (!ordersLoaded || !productsLoaded) return;
+    updateGelombangFilterOptionsDash();
     renderDashboard();
-  } catch (err) {
-    document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
   }
+
+  db.collection("orders").onSnapshot(
+    (snap) => {
+      dashOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      ordersLoaded = true;
+      tryRender();
+    },
+    (err) => {
+      document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+    }
+  );
+
+  db.collection("products")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        dashProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        productsLoaded = true;
+        tryRender();
+      },
+      (err) => {
+        document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+      }
+    );
 
   document.getElementById("filter-periode").addEventListener("change", (e) => {
     const isCustom = e.target.value === "custom";
@@ -71,7 +102,7 @@ function filteredDashOrders() {
     const tgl = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
     if (from && tgl < from) return false;
     if (to && tgl > to) return false;
-    if (gelombang && !(o.items || []).some((it) => it.wave_label === gelombang)) return false;
+    if (gelombang && !(o.items || []).some((it) => resolveWaveLabel(it) === gelombang)) return false;
     return true;
   });
 }

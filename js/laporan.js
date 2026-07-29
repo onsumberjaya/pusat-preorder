@@ -1,6 +1,13 @@
 let lapOrders = [];
 let lapToko = { nama: "Toko Benih" };
 let lapFiltered = [];
+let lapProductsMap = {};
+
+function resolveWaveLabel(item) {
+  const product = lapProductsMap[item.product_id];
+  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
+  return wave ? wave.label : item.wave_label;
+}
 
 window.onAuthReady = async function () {
   try {
@@ -14,9 +21,11 @@ window.onAuthReady = async function () {
 
     const select = document.getElementById("lap-produk");
     prodSnap.docs.forEach((d) => {
+      const p = { id: d.id, ...d.data() };
+      lapProductsMap[p.id] = p;
       const opt = document.createElement("option");
-      opt.value = d.data().nama;
-      opt.textContent = d.data().nama;
+      opt.value = p.nama;
+      opt.textContent = p.nama;
       select.appendChild(opt);
     });
 
@@ -70,7 +79,7 @@ function renderReport() {
       <td>${formatTanggal(o.tanggal)}</td>
       <td>${escapeHtml(o.nama_pembeli)}</td>
       <td>${(o.items || []).map((it) => `${escapeHtml(it.product_name)} (${it.jumlah})`).join("<br>")}</td>
-      <td>${escapeHtml([...new Set((o.items || []).map((it) => it.wave_label))].join(", "))}</td>
+      <td>${escapeHtml([...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "))}</td>
       <td style="text-align:center;">${(o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0)}</td>
       <td style="text-align:right;">${formatRupiah(o.total)}</td>
       <td style="text-align:right;">${formatRupiah(o.paid_amount || 0)}</td>
@@ -106,7 +115,7 @@ function exportExcel() {
     Alamat: o.alamat || "",
     "No HP": o.no_hp || "",
     Produk: (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
-    Gelombang: [...new Set((o.items || []).map((it) => it.wave_label))].join(", "),
+    Gelombang: [...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "),
     Jumlah: (o.items || []).reduce((s, it) => s + it.jumlah, 0),
     Total: o.total,
     "Sudah Dibayar": o.paid_amount || 0,
@@ -137,7 +146,7 @@ function exportPdf() {
     formatTanggal(o.tanggal),
     o.nama_pembeli,
     (o.items || []).map((it) => `${it.product_name} (${it.jumlah})`).join("\n"),
-    [...new Set((o.items || []).map((it) => it.wave_label))].join(", "),
+    [...new Set((o.items || []).map((it) => resolveWaveLabel(it)))].join(", "),
     (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     formatRupiah(o.total),
     formatRupiah(o.paid_amount || 0),
