@@ -237,6 +237,43 @@ function updateBulkToolbar() {
 async function bulkAction(type, value) {
   if (selectedIds.size === 0) return;
   const label = type === "diambil" ? (value ? "Sudah Diambil" : "Belum Diambil") : STATUS_BAYAR_LABEL[value];
+  const profile = window.currentUserProfile;
+
+  // "Tandai Belum Bayar" massal berisiko menghapus jejak uang yang sudah
+  // tercatat masuk (paid_amount direset ke 0 tanpa menyentuh riwayat
+  // pembayaran yang sudah ada) -> pesanan yang SUDAH punya riwayat
+  // pembayaran dilewati, harus diubah manual lewat Detail Pesanan supaya
+  // ada catatan jelas kenapa pembayaran itu dibatalkan.
+  if (type === "bayar" && value === "belum_bayar") {
+    const idsToProcess = [];
+    let skippedCount = 0;
+    selectedIds.forEach((id) => {
+      const order = allOrders.find((o) => o.id === id);
+      if (order && (order.paid_amount || 0) > 0) skippedCount++;
+      else idsToProcess.push(id);
+    });
+    if (idsToProcess.length === 0) {
+      showToast("Semua pesanan terpilih sudah punya riwayat pembayaran. Ubah satu per satu lewat Detail Pesanan.", "error");
+      return;
+    }
+    const warn = skippedCount > 0 ? ` (${skippedCount} pesanan lain dilewati karena sudah punya riwayat pembayaran — ubah manual lewat Detail Pesanan.)` : "";
+    if (!confirm(`Terapkan status "Belum Bayar" ke ${idsToProcess.length} pesanan terpilih?${warn}`)) return;
+
+    const batch = db.batch();
+    idsToProcess.forEach((id) => {
+      batch.update(db.collection("orders").doc(id), { status_bayar: "belum_bayar", paid_amount: 0 });
+    });
+    try {
+      await batch.commit();
+      showToast(skippedCount > 0 ? `${idsToProcess.length} pesanan diperbarui, ${skippedCount} dilewati.` : "Berhasil memperbarui pesanan terpilih.", "success");
+      selectedIds.clear();
+      updateBulkToolbar();
+    } catch (err) {
+      showToast(friendlyFirebaseError(err), "error");
+    }
+    return;
+  }
+
   if (!confirm(`Terapkan status "${label}" ke ${selectedIds.size} pesanan terpilih?`)) return;
 
   const batch = db.batch();
@@ -247,10 +284,24 @@ async function bulkAction(type, value) {
         is_diambil: value,
         tanggal_ambil: value ? firebase.firestore.FieldValue.serverTimestamp() : null,
       });
-    } else if (type === "bayar") {
+    } else if (type === "bayar" && value === "lunas") {
       const order = allOrders.find((o) => o.id === id);
-      const paid = value === "lunas" ? (order ? order.total : 0) : 0;
-      batch.update(ref, { status_bayar: value, paid_amount: paid });
+      if (!order) return;
+      const sisa = order.total - (order.paid_amount || 0);
+      // Catat pelunasannya ke riwayat pembayaran supaya "Riwayat Pembayaran"
+      // di Detail Pesanan tetap nyambung dengan status yang ditampilkan.
+      if (sisa > 0) {
+        const paymentRef = ref.collection("payments").doc();
+        batch.set(paymentRef, {
+          tanggal: firebase.firestore.FieldValue.serverTimestamp(),
+          jumlah: sisa,
+          catatan: "Pelunasan (aksi massal)",
+          created_by: profile.uid,
+          created_by_name: profile.full_name,
+          created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      batch.update(ref, { status_bayar: "lunas", paid_amount: order.total });
     }
   });
 
