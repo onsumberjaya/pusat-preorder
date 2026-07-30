@@ -7,6 +7,47 @@ let formReady = false;
 let allCabangInput = [];
 let cabangReady = false;
 
+// Modal konfirmasi kustom (di tengah layar, sesuai gaya modal lain di
+// aplikasi ini) -- dipakai untuk peringatan "nota tempo / belum lunas" saat
+// simpan pesanan baru. Mengembalikan Promise<boolean> (true = Lanjutkan).
+function ensureConfirmModal() {
+  if (document.getElementById("confirm-modal")) return;
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <div class="modal-backdrop" id="confirm-modal" style="display:none;">
+      <div class="modal-box" style="max-width:420px;">
+        <div id="confirm-modal-body"></div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="button" class="btn-primary" id="confirm-modal-ok" style="flex:1; justify-content:center;">Lanjutkan Simpan</button>
+          <button type="button" class="btn-secondary" id="confirm-modal-cancel">Batal</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function showConfirmModal(bodyHtml) {
+  ensureConfirmModal();
+  return new Promise((resolve) => {
+    const modal = document.getElementById("confirm-modal");
+    document.getElementById("confirm-modal-body").innerHTML = bodyHtml;
+    modal.style.display = "flex";
+
+    const cleanup = (result) => {
+      modal.style.display = "none";
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+    const okBtn = document.getElementById("confirm-modal-ok");
+    const cancelBtn = document.getElementById("confirm-modal-cancel");
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
 function emptyLine() {
   return { key: lineKeyCounter++, product_id: "", wave_id: "", jumlah: "1" };
 }
@@ -140,6 +181,12 @@ function renderForm() {
   // dipindah cabang lain lewat form ini.
   const cabangLocked = isKaryawanCabang || isEdit;
   const lockedCabangId = isKaryawanCabang ? profile.cabang_id : isEdit ? editOrderData.cabang_id : "";
+  // Untuk akun Owner/Admin Kasir (yang boleh pilih cabang manapun) saat BUAT
+  // BARU: otomatis pilihkan cabang yang namanya mengandung "pusat" (kalau
+  // ada) supaya tidak perlu klik ekstra untuk kasus paling umum -- tetap
+  // bisa diganti manual ke cabang lain sebelum disimpan.
+  const cabangAktif = allCabangInput.filter((c) => c.is_active !== false);
+  const defaultCabang = !cabangLocked ? cabangAktif.find((c) => /pusat/i.test(c.nama)) : null;
   const cabangFieldHtml = cabangLocked
     ? `<div class="field">
         <label>Cabang</label>
@@ -150,9 +197,8 @@ function renderForm() {
         <label>Cabang *</label>
         <select id="f-cabang" required>
           <option value="">Pilih Cabang</option>
-          ${allCabangInput
-            .filter((c) => c.is_active !== false)
-            .map((c) => `<option value="${c.id}">${escapeHtml(c.nama)}</option>`)
+          ${cabangAktif
+            .map((c) => `<option value="${c.id}" ${defaultCabang && defaultCabang.id === c.id ? "selected" : ""}>${escapeHtml(c.nama)}</option>`)
             .join("")}
         </select>
       </div>`;
@@ -410,6 +456,27 @@ async function handleSubmit(e) {
       ? `<div class="alert alert-error">Total pesanan baru (${formatRupiah(total)}) lebih kecil dari yang sudah dibayar (${formatRupiah(paidAmount)}). Kurangi jumlah dulu, atau sesuaikan pembayarannya lewat Detail Pesanan di Daftar Pesanan.</div>`
       : `<div class="alert alert-error">Jumlah bayar tidak boleh melebihi total pesanan.</div>`;
     return;
+  }
+
+  // Pesanan baru dengan bayar 0 atau kurang dari total = nota tempo/belum
+  // lunas -- beri jendela konfirmasi (di tengah layar) supaya tidak kelewatan
+  // tanpa sadar sebelum benar-benar tersimpan.
+  if (!editOrderId && paidAmount < total) {
+    const sisaBelum = total - paidAmount;
+    const bodyHtml =
+      paidAmount <= 0
+        ? `<div class="card-heading" style="margin-bottom:10px;"><span class="card-heading-icon" style="background:#fef3c7; color:#b45309;"><i class="ph-bold ph-warning"></i></span><h3 style="font-size:16px;">Simpan sebagai Nota Tempo?</h3></div>
+           <p style="font-size:14px; color:var(--gray-700); margin:0 0 12px;">Pesanan ini belum dibayar sama sekali (Rp 0), akan tersimpan dengan status <strong>Belum Bayar</strong> (nota tempo).</p>
+           <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-size:14px; display:flex; justify-content:space-between;"><span>Total Tagihan</span><strong>${formatRupiah(total)}</strong></div>`
+        : `<div class="card-heading" style="margin-bottom:10px;"><span class="card-heading-icon" style="background:#fef3c7; color:#b45309;"><i class="ph-bold ph-warning"></i></span><h3 style="font-size:16px;">Simpan sebagai Belum Lunas?</h3></div>
+           <p style="font-size:14px; color:var(--gray-700); margin:0 0 12px;">Jumlah bayar kurang dari total pesanan, akan tersimpan dengan status <strong>Bayar Sebagian</strong> (sisa jadi tempo).</p>
+           <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-size:14px; display:grid; gap:4px;">
+             <div style="display:flex; justify-content:space-between;"><span>Total Tagihan</span><strong>${formatRupiah(total)}</strong></div>
+             <div style="display:flex; justify-content:space-between;"><span>Dibayar</span><span>${formatRupiah(paidAmount)}</span></div>
+             <div style="display:flex; justify-content:space-between; color:var(--red-600);"><span>Sisa / Tempo</span><strong>${formatRupiah(sisaBelum)}</strong></div>
+           </div>`;
+    const lanjut = await showConfirmModal(bodyHtml);
+    if (!lanjut) return;
   }
 
   const itemsData = validLines.map((l) => {

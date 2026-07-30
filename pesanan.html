@@ -19,7 +19,16 @@
       <p class="page-subtitle">Semua pesanan preorder. Gunakan filter untuk mempersempit pencarian.</p>
 
       <div class="card" style="margin-bottom:16px;">
-        <div class="toolbar">
+        <div class="card-heading" style="margin-bottom:12px; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="card-heading-icon"><i class="ph-bold ph-funnel"></i></span>
+            <h3 style="font-size:14px;">Filter Data</h3>
+          </div>
+          <button type="button" class="btn-secondary btn-sm mobile-only" id="pesanan-filter-toggle-btn" onclick="togglePesananFilterVisibility()">
+            <i class="ph-bold ph-eye-slash"></i> Sembunyikan
+          </button>
+        </div>
+        <div class="toolbar" id="pesanan-filter-toolbar">
           <input type="text" id="filter-search" placeholder="Cari nama / no HP / no pesanan" style="min-width:200px;" />
           <select id="filter-cabang" style="display:none;"><option value="">Semua Cabang</option></select>
           <select id="filter-produk"><option value="">Semua Produk</option></select>
