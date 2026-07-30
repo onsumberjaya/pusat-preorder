@@ -508,6 +508,12 @@ table tbody tr:hover { background: var(--gray-50); }
 }
 .card-heading h3 { margin: 0; }
 
+/* Tombol yang cuma tampil di layar HP (mis. tombol sembunyikan filter Dashboard) */
+.mobile-only { display: none; }
+@media (max-width: 860px) {
+  .mobile-only { display: inline-flex; }
+}
+
 .rank-badge {
   display: inline-flex;
   align-items: center;

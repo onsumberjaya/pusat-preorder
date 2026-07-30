@@ -6,10 +6,31 @@ let chartAlamat = null;
 let chartWaktu = null;
 let dashGranularitas = "harian";
 
+// Tombol "Sembunyikan"/"Tampilkan" filter, khusus tampilan HP (tombolnya
+// sendiri disembunyikan di desktop lewat CSS .mobile-only).
+function toggleDashFilterVisibility() {
+  const toolbar = document.getElementById("dash-filter-toolbar");
+  const btn = document.getElementById("dash-filter-toggle-btn");
+  const hidden = toolbar.style.display === "none";
+  toolbar.style.display = hidden ? "" : "none";
+  btn.innerHTML = hidden
+    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan'
+    : '<i class="ph-bold ph-eye"></i> Tampilkan';
+}
+
 function resolveWaveLabel(item) {
   const product = dashProducts.find((p) => p.id === item.product_id);
   const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
   return wave ? wave.label : item.wave_label;
+}
+
+// Format teks jadi "Huruf Kapital Di Awal Tiap Kata" -- dipakai supaya nama
+// alamat yang diketik beda-beda (SUKORAME / sukorame / Sukorame) tampil
+// konsisten satu gaya di grafik "Jumlah Unit Terjual per Alamat".
+function toTitleCase(str) {
+  return String(str || "")
+    .toLowerCase()
+    .replace(/(^|\s|[-/])\S/g, (c) => c.toUpperCase());
 }
 
 function updateGelombangFilterOptionsDash() {
@@ -245,7 +266,8 @@ function renderDashboard() {
       perProdukPerCabang[it.product_name][cabangKey] =
         (perProdukPerCabang[it.product_name][cabangKey] || 0) + (Number(it.jumlah) || 0);
     });
-    const alamatKey = (o.alamat || "Tanpa Alamat").trim() || "Tanpa Alamat";
+    const alamatRaw = (o.alamat || "Tanpa Alamat").trim() || "Tanpa Alamat";
+    const alamatKey = toTitleCase(alamatRaw);
     const orderQty = (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0);
     perAlamat[alamatKey] = (perAlamat[alamatKey] || 0) + orderQty;
   });
