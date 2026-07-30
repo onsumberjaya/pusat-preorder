@@ -351,7 +351,8 @@ function renderDashboard() {
   drawBarChart("chart-produk", perProduk, "chartProduk", "#16a34a");
   const topAlamat = Object.entries(perAlamat)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+    .slice(0, 10)
+    .reverse();
   drawBarChart("chart-alamat", Object.fromEntries(topAlamat), "chartAlamat", "#0ea5e9", true);
 }
 
