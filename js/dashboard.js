@@ -1,5 +1,6 @@
 let dashOrders = [];
 let dashProducts = [];
+let allCabangDash = [];
 let chartProduk = null;
 let chartAlamat = null;
 let chartWaktu = null;
@@ -26,13 +27,42 @@ function updateGelombangFilterOptionsDash() {
   if (labels.has(currentValue)) gelSelect.value = currentValue;
 }
 
+function updateCabangFilterOptionsDash(profile) {
+  const select = document.getElementById("filter-cabang-dash");
+  // Karyawan cabang cuma bisa lihat cabangnya sendiri (query juga sudah
+  // dibatasi ke cabang itu) -- filter ini tidak relevan buat mereka, jadi
+  // disembunyikan saja daripada nampilkan dropdown isi 1 pilihan doang.
+  if (!canAccessAllBranches(profile)) {
+    select.style.display = "none";
+    return;
+  }
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">Semua Cabang</option>';
+  allCabangDash
+    .filter((c) => c.is_active !== false)
+    .forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.nama;
+      select.appendChild(opt);
+    });
+  if (Array.from(select.options).some((o) => o.value === currentValue)) select.value = currentValue;
+}
+
+function cabangNamaDash(cabangId) {
+  const c = allCabangDash.find((x) => x.id === cabangId);
+  return c ? c.nama : "Belum Ada Cabang";
+}
+
 window.onAuthReady = async function (profile) {
   let ordersLoaded = false;
   let productsLoaded = false;
+  let cabangLoaded = false;
 
   function tryRender() {
-    if (!ordersLoaded || !productsLoaded) return;
+    if (!ordersLoaded || !productsLoaded || !cabangLoaded) return;
     updateGelombangFilterOptionsDash();
+    updateCabangFilterOptionsDash(profile);
     renderDashboard();
   }
 
@@ -67,6 +97,19 @@ window.onAuthReady = async function (profile) {
       }
     );
 
+  db.collection("cabang")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        allCabangDash = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        cabangLoaded = true;
+        tryRender();
+      },
+      (err) => {
+        document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+      }
+    );
+
   document.getElementById("filter-periode").addEventListener("change", (e) => {
     const isCustom = e.target.value === "custom";
     document.getElementById("filter-dari").style.display = isCustom ? "block" : "none";
@@ -77,6 +120,7 @@ window.onAuthReady = async function (profile) {
   document.getElementById("filter-dari").addEventListener("change", renderDashboard);
   document.getElementById("filter-sampai").addEventListener("change", renderDashboard);
   document.getElementById("filter-gelombang-dash").addEventListener("change", renderDashboard);
+  document.getElementById("filter-cabang-dash").addEventListener("change", renderDashboard);
 };
 
 function getDateRange() {
@@ -107,11 +151,13 @@ function getDateRange() {
 function filteredDashOrders() {
   const { from, to } = getDateRange();
   const gelombang = document.getElementById("filter-gelombang-dash").value;
+  const cabangFilter = document.getElementById("filter-cabang-dash").value;
   return dashOrders.filter((o) => {
     const tgl = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
     if (from && tgl < from) return false;
     if (to && tgl > to) return false;
     if (gelombang && !(o.items || []).some((it) => resolveWaveLabel(it) === gelombang)) return false;
+    if (cabangFilter && o.cabang_id !== cabangFilter) return false;
     return true;
   });
 }
@@ -189,17 +235,28 @@ function renderDashboard() {
   const pembeliUnik = new Set(orders.map((o) => (o.nama_pembeli || "").trim().toLowerCase())).size;
 
   const perProduk = {};
-  const perProdukPesanan = {};
+  const perProdukPerCabang = {};
   const perAlamat = {};
   orders.forEach((o) => {
+    const cabangKey = o.cabang_id || "__tanpa_cabang__";
     (o.items || []).forEach((it) => {
       perProduk[it.product_name] = (perProduk[it.product_name] || 0) + it.jumlah;
-      perProdukPesanan[it.product_name] = (perProdukPesanan[it.product_name] || 0) + 1;
+      if (!perProdukPerCabang[it.product_name]) perProdukPerCabang[it.product_name] = {};
+      perProdukPerCabang[it.product_name][cabangKey] =
+        (perProdukPerCabang[it.product_name][cabangKey] || 0) + (Number(it.jumlah) || 0);
     });
     const alamatKey = (o.alamat || "Tanpa Alamat").trim() || "Tanpa Alamat";
     const orderQty = (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0);
     perAlamat[alamatKey] = (perAlamat[alamatKey] || 0) + orderQty;
   });
+
+  // Kolom cabang di tabel "Detail Total per Produk": semua cabang aktif yang
+  // terdaftar (walau belum ada pesanannya di rentang filter ini, tetap
+  // ditampilkan sebagai kolom 0), plus kolom tambahan "Tanpa Cabang" HANYA
+  // kalau memang ada pesanan lama yang belum dimigrasi ke cabang manapun.
+  const cabangColumns = allCabangDash.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, nama: c.nama }));
+  const adaTanpaCabang = orders.some((o) => !o.cabang_id);
+  if (adaTanpaCabang) cabangColumns.push({ id: "__tanpa_cabang__", nama: "Tanpa Cabang" });
 
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `
@@ -251,29 +308,35 @@ function renderDashboard() {
     </div>
 
     <div class="card" style="margin-top:20px;">
-      <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-list-numbers"></i></span><h3>Detail Total per Produk</h3></div>
-      <table class="table">
-        <thead>
-          <tr><th>Produk</th><th>Jumlah Pesanan</th><th>Jumlah Unit</th></tr>
-        </thead>
-        <tbody>
-          ${
-            Object.keys(perProduk).length === 0
-              ? '<tr><td colspan="3" style="color:var(--gray-400);">Belum ada data.</td></tr>'
-              : Object.keys(perProduk)
-                  .sort((a, b) => perProduk[b] - perProduk[a])
-                  .map(
-                    (nama, idx) => `
+      <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-list-numbers"></i></span><h3>Detail Total per Produk${cabangColumns.length > 1 ? " per Cabang" : ""}</h3></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Produk</th>
+              ${cabangColumns.map((c) => `<th style="text-align:center;">${escapeHtml(c.nama)}</th>`).join("")}
+              <th style="text-align:center;">Total Semua Cabang</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              Object.keys(perProduk).length === 0
+                ? `<tr><td colspan="${cabangColumns.length + 2}" style="color:var(--gray-400);">Belum ada data.</td></tr>`
+                : Object.keys(perProduk)
+                    .sort((a, b) => perProduk[b] - perProduk[a])
+                    .map(
+                      (nama, idx) => `
                     <tr>
                       <td>${escapeHtml(nama)}${idx === 0 ? '<span class="rank-badge"><i class="ph-bold ph-trophy"></i> Terlaris</span>' : ""}</td>
-                      <td>${perProdukPesanan[nama]}</td>
-                      <td>${perProduk[nama]}</td>
+                      ${cabangColumns.map((c) => `<td style="text-align:center;">${(perProdukPerCabang[nama] && perProdukPerCabang[nama][c.id]) || 0}</td>`).join("")}
+                      <td style="text-align:center; font-weight:700;">${perProduk[nama]}</td>
                     </tr>`
-                  )
-                  .join("")
-          }
-        </tbody>
-      </table>
+                    )
+                    .join("")
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   `;
 
