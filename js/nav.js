@@ -1,5 +1,6 @@
 const NAV_ITEMS = [
   { href: "toko.html", icon: "ph-storefront", label: "Profil Toko", ownerOnly: true },
+  { href: "cabang.html", icon: "ph-git-branch", label: "Kelola Cabang", ownerOnly: true },
   { href: "pengguna.html", icon: "ph-users-three", label: "Akun Pengguna", ownerOnly: true },
   { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
   { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
@@ -35,6 +36,7 @@ function renderSidebar(profile) {
   }
 
   renderTopbar(profile);
+  fillTopbarCabangName(profile);
   ensureChangePasswordModal();
 
   const overlay = document.getElementById("sidebar-overlay");
@@ -49,7 +51,6 @@ function renderTopbar(profile) {
   const topbar = document.getElementById("mobile-topbar");
   if (!topbar) return;
 
-  const roleLabel = profile.role === "owner" ? "Owner" : "Karyawan";
   const displayName = escapeHtml(profile.full_name || profile.username || "");
   const initials = (profile.full_name || profile.username || "?")
     .trim()
@@ -72,13 +73,29 @@ function renderTopbar(profile) {
       </button>
       <div class="account-menu-panel" id="account-menu-panel">
         <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
-          ${roleLabel}${displayName ? " · " + displayName : ""}
+          <span id="topbar-role-text">${escapeHtml(roleLabel(profile.role))}</span>${displayName ? " · " + displayName : ""}
         </div>
         <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
         <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
       </div>
     </div>
   `;
+}
+
+// Isi nama cabang di sebelah label role (kalau user ini Karyawan cabang),
+// dilakukan async terpisah dari renderTopbar supaya render awal tidak perlu
+// menunggu 1 kali baca dokumen cabang lagi.
+async function fillTopbarCabangName(profile) {
+  if (profile.role !== "karyawan" || !profile.cabang_id) return;
+  try {
+    const doc = await db.collection("cabang").doc(profile.cabang_id).get();
+    const el = document.getElementById("topbar-role-text");
+    if (doc.exists && el) {
+      el.textContent = `${roleLabel(profile.role)} · ${doc.data().nama}`;
+    }
+  } catch (err) {
+    // Diamkan saja -- ini cuma teks pelengkap di topbar, bukan hal kritis.
+  }
 }
 
 function toggleMenu() {

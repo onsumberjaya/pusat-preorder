@@ -131,6 +131,27 @@ async function getNextNotaSeq(year) {
   });
 }
 
+// Label & helper role: "karyawan" lama (sebelum fitur cabang) sudah dipakai
+// ulang jadi "Admin Kasir"; "karyawan" yang baru sekarang berarti karyawan
+// per-cabang (dibedakan lewat ADA-TIDAKNYA field cabang_id, bukan dari role
+// string-nya saja -- lihat fungsi migrasi di js/cabang.js).
+const ROLE_LABEL = {
+  owner: "Owner",
+  admin_kasir: "Admin Kasir",
+  karyawan: "Karyawan",
+};
+
+function roleLabel(role) {
+  return ROLE_LABEL[role] || "Karyawan";
+}
+
+// Owner & Admin Kasir bebas akses semua cabang; Karyawan (cabang) terkunci ke
+// cabang_id akunnya sendiri. Dipakai berulang di pesanan.js/laporan.js/
+// input-pesanan.js/dashboard.js untuk menyesuaikan query & tampilan per role.
+function canAccessAllBranches(profile) {
+  return !!profile && (profile.role === "owner" || profile.role === "admin_kasir");
+}
+
 const STATUS_BAYAR_LABEL = {
   lunas: "Lunas",
   cicilan: "Bayar Sebagian",

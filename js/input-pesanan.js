@@ -4,10 +4,14 @@ let lineKeyCounter = 0;
 let editOrderId = null;
 let editOrderData = null;
 let formReady = false;
+let allCabangInput = [];
+let cabangReady = false;
 
 function emptyLine() {
   return { key: lineKeyCounter++, product_id: "", wave_id: "", jumlah: "1" };
 }
+
+let productsListReady = false;
 
 window.onAuthReady = async function () {
   const params = new URLSearchParams(location.search);
@@ -34,6 +38,21 @@ window.onAuthReady = async function () {
     }
   }
 
+  // Daftar cabang -- dipakai buat dropdown pilih cabang (Owner/Admin Kasir)
+  // atau buat menampilkan nama cabang yang terkunci (Karyawan cabang).
+  db.collection("cabang")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        allCabangInput = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        cabangReady = true;
+        tryRenderOrRefreshForm();
+      },
+      (err) => {
+        showToast("Gagal memuat cabang: " + friendlyFirebaseError(err), "error");
+      }
+    );
+
   // Real-time: kalau Owner ubah harga/gelombang/stok produk SAAT halaman ini
   // masih terbuka, harga & peringatan stok di form otomatis ikut ter-update
   // tanpa perlu refresh manual -- tapi pilihan produk/gelombang/jumlah yang
@@ -43,20 +62,31 @@ window.onAuthReady = async function () {
     .onSnapshot(
       (snap) => {
         products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        if (!formReady) {
-          if (lineItems.length === 0) lineItems = [emptyLine()];
-          formReady = true;
-          renderForm();
-        } else {
-          renderLineItems();
-          updateTotalDisplay();
-        }
+        productsListReady = true;
+        tryRenderOrRefreshForm();
       },
       (err) => {
         showToast("Gagal memuat produk: " + friendlyFirebaseError(err), "error");
       }
     );
 };
+
+function tryRenderOrRefreshForm() {
+  if (!productsListReady || !cabangReady) return;
+  if (!formReady) {
+    if (lineItems.length === 0) lineItems = [emptyLine()];
+    formReady = true;
+    renderForm();
+  } else {
+    renderLineItems();
+    updateTotalDisplay();
+  }
+}
+
+function cabangNamaFor(cabangId) {
+  const c = allCabangInput.find((x) => x.id === cabangId);
+  return c ? c.nama : "-";
+}
 
 function getProduct(id) {
   return products.find((p) => p.id === id);
@@ -85,10 +115,36 @@ function renderForm() {
     ? (editOrderData.tanggal.toDate ? editOrderData.tanggal.toDate() : new Date(editOrderData.tanggal)).toISOString().slice(0, 10)
     : todayInputValue();
 
+  const profile = window.currentUserProfile;
+  const isKaryawanCabang = profile && profile.role === "karyawan";
+  // Cabang terkunci (tidak bisa dipilih ulang) kalau: (1) yang input Karyawan
+  // cabang -- selalu terkunci ke cabangnya sendiri, atau (2) sedang Edit
+  // Pesanan -- cabang_id sudah permanen sejak pesanan dibuat, tidak bisa
+  // dipindah cabang lain lewat form ini.
+  const cabangLocked = isKaryawanCabang || isEdit;
+  const lockedCabangId = isKaryawanCabang ? profile.cabang_id : isEdit ? editOrderData.cabang_id : "";
+  const cabangFieldHtml = cabangLocked
+    ? `<div class="field">
+        <label>Cabang</label>
+        <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:10px 12px; font-weight:600;">${escapeHtml(cabangNamaFor(lockedCabangId))}</div>
+        <p style="font-size:12px; color:var(--gray-500); margin:4px 0 0;">${isKaryawanCabang ? "Pesanan otomatis tercatat untuk cabang Anda." : "Cabang tidak bisa diubah setelah pesanan dibuat."}</p>
+      </div>`
+    : `<div class="field">
+        <label>Cabang *</label>
+        <select id="f-cabang" required>
+          <option value="">Pilih Cabang</option>
+          ${allCabangInput
+            .filter((c) => c.is_active !== false)
+            .map((c) => `<option value="${c.id}">${escapeHtml(c.nama)}</option>`)
+            .join("")}
+        </select>
+      </div>`;
+
   container.innerHTML = `
     <div class="order-layout">
       <div class="card order-form-col">
         <form id="order-form">
+          ${cabangFieldHtml}
           <div class="field">
             <label>Tanggal *</label>
             <input type="date" id="f-tanggal" required value="${tanggalVal}" />
@@ -318,6 +374,18 @@ async function handleSubmit(e) {
     return;
   }
 
+  const profileForCabang = window.currentUserProfile;
+  const isKaryawanCabangSubmit = profileForCabang && profileForCabang.role === "karyawan";
+  const cabangIdBaru = !editOrderId
+    ? isKaryawanCabangSubmit
+      ? profileForCabang.cabang_id
+      : document.getElementById("f-cabang").value
+    : null;
+  if (!editOrderId && !cabangIdBaru) {
+    alertBox.innerHTML = `<div class="alert alert-error">Pilih cabang untuk pesanan ini.</div>`;
+    return;
+  }
+
   const total = grandTotal();
   const paidAmount = editOrderId ? editOrderData.paid_amount || 0 : Number(document.getElementById("f-bayar").value) || 0;
   if (paidAmount > total) {
@@ -374,6 +442,7 @@ async function handleSubmit(e) {
     const ids = await getNextOrderIdentifiers();
     const newOrderRef = db.collection("orders").doc();
     await newOrderRef.set({
+      cabang_id: cabangIdBaru,
       order_no: ids.order_no,
       nota_tahun: ids.nota_tahun,
       nota_seq: ids.nota_seq,

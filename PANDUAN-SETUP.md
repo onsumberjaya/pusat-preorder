@@ -83,7 +83,46 @@ Selesai! Akun pertama Anda: **username `admin`, password `admin123`**.
 
 ---
 
-## BAGIAN 3 — Coba Dulu di Komputer (tanpa install apapun)
+## BAGIAN 3 — Setup Cabang & Role Baru (Admin Kasir / Karyawan Cabang)
+
+Aplikasi ini sekarang mendukung banyak toko cabang dengan 3 tingkat akses. Siapkan dulu sebelum dipakai sehari-hari.
+
+### 3a. Buat cabang pertama
+1. Login sebagai Owner, buka menu **Kelola Cabang** di sidebar.
+2. Klik **+ Cabang Baru**, isi nama (contoh: `Toko Pusat` untuk toko utama Anda), simpan.
+3. Ulangi untuk tiap toko cabang yang Anda punya (misalnya `Toko Cabang Wonosari`).
+
+### 3b. Migrasi data lama (LEWATI kalau ini instalasi baru / belum pernah ada pesanan sebelumnya)
+Kalau sebelumnya Anda sudah pakai aplikasi ini (sudah ada pesanan & akun karyawan dari sebelum fitur cabang ada):
+1. Buka menu **Kelola Cabang** — kalau memang ada yang perlu dimigrasi, akan muncul kotak kuning **"Data Lama Belum Punya Cabang"**.
+2. Di kotak itu, pilih cabang tujuan untuk pesanan-pesanan lama (biasanya `Toko Pusat`).
+3. Klik **Migrasikan Sekarang**. Ini otomatis akan:
+   - Mengisi cabang pada semua pesanan lama dengan cabang yang Anda pilih.
+   - Mengubah semua akun **"Karyawan"** versi lama menjadi role **"Admin Kasir"** (tetap akses semua cabang seperti sebelumnya) — sesuai permintaan Anda mengganti nama akun karyawan lama jadi Admin Kasir.
+4. Aman diulang kapan saja — data yang sudah benar tidak akan disentuh lagi, dan tidak akan salah mengubah akun Karyawan cabang yang baru Anda buat setelah ini.
+
+### 3c. Ringkasan 3 role yang tersedia
+
+| Role | Lihat pesanan | Edit isi pesanan | Tandai Lunas / Ambil | Input Pesanan | Laporan & Export | Produk / Akun / Toko / Cabang |
+|---|---|---|---|---|---|---|
+| **Owner** | Semua cabang | Ya | Semua cabang | Semua cabang (pilih cabang) | Semua cabang | Ya |
+| **Admin Kasir** | Semua cabang | Tidak | Semua cabang | Semua cabang (pilih cabang) | Semua cabang | Tidak |
+| **Karyawan** (per cabang) | Cabang sendiri saja | Tidak | Cabang sendiri saja | Cabang sendiri (terkunci) | Cabang sendiri saja | Tidak |
+
+Buat akun barunya lewat menu **Akun Pengguna** seperti biasa. Untuk role **Karyawan**, akan muncul field tambahan untuk memilih cabang mana yang dikunci ke akun itu — sekali dipilih & disimpan, akun itu selamanya hanya bisa mengakses pesanan cabang tersebut, bahkan Firestore sendiri (bukan cuma tampilannya) yang menolak permintaan datanya kalau mencoba mengakses cabang lain.
+
+### 3d. Kalau muncul pesan error berbau "index" (biasanya saat akun Karyawan pertama kali login)
+Firestore kadang perlu "index" tambahan untuk query yang dibatasi per cabang (dipakai di halaman Dashboard, Daftar Pesanan, dan Laporan). Kalau ada Karyawan yang login lalu melihat data tidak muncul disertai pesan error, cek isi errornya (bisa lewat tombol F12 di browser → tab Console):
+1. Cari link yang formatnya seperti `https://console.firebase.google.com/.../firestore/indexes?create_composite=...` di pesan error itu.
+2. Buka link itu sambil login sebagai pemilik project Firebase (Owner).
+3. Klik **Create Index**, tunggu beberapa menit sampai statusnya berubah jadi **Enabled**.
+4. Refresh halaman aplikasinya — error akan hilang dan tidak akan muncul lagi untuk query yang sama.
+
+Ini cukup dilakukan **sekali** per halaman (biasanya total 2-3 index untuk seluruh aplikasi), bukan berulang tiap ada Karyawan baru.
+
+---
+
+## BAGIAN 4 — Coba Dulu di Komputer (tanpa install apapun)
 
 Karena file-nya HTML biasa, Anda bisa buka langsung:
 1. Buka folder project ini di File Explorer.
@@ -91,18 +130,19 @@ Karena file-nya HTML biasa, Anda bisa buka langsung:
 3. Login dengan `admin` / `admin123`.
 
 > Catatan: sebagian browser membatasi fitur tertentu saat membuka file HTML langsung (`file://`).
-> Kalau ada kejanggalan, lanjut saja ke Bagian 4 (hosting online) — di sana semua akan berjalan normal.
+> Kalau ada kejanggalan, lanjut saja ke Bagian 5 (hosting online) — di sana semua akan berjalan normal.
 
 Setelah login, langsung isi dulu:
 - **Profil Toko** — nama, alamat, no HP toko Anda
-- **Produk & Gelombang** — tambahkan produk dan harga per gelombang
-- **Akun Pengguna** — buat akun untuk karyawan Anda
+- **Kelola Cabang** — daftar toko cabang Anda (lihat Bagian 3 di atas)
+- **Produk & Gelombang** — tambahkan produk dan harga per gelombang (dipakai bersama oleh semua cabang)
+- **Akun Pengguna** — buat akun Admin Kasir / Karyawan untuk tim Anda
 
 ---
 
-## BAGIAN 4 — Online-kan Gratis lewat GitHub Pages
+## BAGIAN 5 — Online-kan Gratis lewat GitHub Pages
 
-### 4a. Upload ke GitHub
+### 5a. Upload ke GitHub
 1. Buat akun gratis di https://github.com kalau belum punya.
 2. Install **GitHub Desktop** (https://desktop.github.com/), login dengan akun GitHub Anda.
 3. Buat repository baru di GitHub Desktop:
@@ -112,7 +152,7 @@ Setelah login, langsung isi dulu:
    - Klik **Create Repository**
 4. Klik **Publish repository** (pastikan **tidak dicentang** "Keep this code private" kalau ingin akses gratis penuh dari GitHub Pages — repo publik tidak masalah karena `firebaseConfig` memang aman untuk terbuka, keamanan sesungguhnya ada di Firestore Rules yang sudah kita pasang).
 
-### 4b. Aktifkan GitHub Pages
+### 5b. Aktifkan GitHub Pages
 1. Buka repository Anda di browser (github.com).
 2. Klik tab **Settings** → menu kiri **Pages**.
 3. Di bagian **Build and deployment → Source**, pilih **Deploy from a branch**.
@@ -123,7 +163,7 @@ Setelah login, langsung isi dulu:
    ```
    Itu alamat aplikasi Anda yang sudah online dan bisa diakses dari mana saja (HP, komputer lain, dll).
 
-### 4c. Update ke depannya
+### 5c. Update ke depannya
 Setiap kali Anda edit file (misalnya minta saya tambah fitur lagi), tinggal:
 1. Buka GitHub Desktop
 2. Akan muncul daftar perubahan file

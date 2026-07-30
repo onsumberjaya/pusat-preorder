@@ -1,5 +1,6 @@
 let allOrders = [];
 let allProductsMap = {};
+let allCabangMap = {};
 let selectedIds = new Set();
 let unsubscribeOrders = null;
 
@@ -27,9 +28,14 @@ function hasPriceMismatch(order) {
 
 window.onAuthReady = function (profile) {
   listenProductFilters();
-  listenOrders();
+  listenOrders(profile);
+
+  if (canAccessAllBranches(profile)) {
+    listenCabangFilter();
+  }
 
   document.getElementById("filter-search").addEventListener("input", debounceRender);
+  document.getElementById("filter-cabang").addEventListener("change", renderOrders);
   document.getElementById("filter-produk").addEventListener("change", () => {
     updateGelombangFilterOptions();
     renderOrders();
@@ -47,6 +53,36 @@ window.onAuthReady = function (profile) {
 
   document.getElementById("bulk-delete-btn").style.display = profile.role === "owner" ? "inline-flex" : "none";
 };
+
+// Filter Cabang cuma ditampilkan untuk Owner/Admin Kasir (yang boleh lihat
+// semua cabang) -- Karyawan cabang tidak perlu ini karena datanya sudah
+// otomatis terbatas ke cabangnya sendiri lewat query di listenOrders().
+function listenCabangFilter() {
+  const select = document.getElementById("filter-cabang");
+  select.style.display = "";
+  db.collection("cabang")
+    .orderBy("nama")
+    .onSnapshot(
+      (snap) => {
+        allCabangMap = {};
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Semua Cabang</option>';
+        snap.docs.forEach((d) => {
+          const c = { id: d.id, ...d.data() };
+          allCabangMap[c.id] = c;
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.nama;
+          select.appendChild(opt);
+        });
+        if (Array.from(select.options).some((o) => o.value === currentValue)) select.value = currentValue;
+        renderOrders();
+      },
+      (err) => {
+        showToast("Gagal memuat cabang: " + friendlyFirebaseError(err), "error");
+      }
+    );
+}
 
 let debounceTimer;
 function debounceRender() {
@@ -109,8 +145,16 @@ function updateGelombangFilterOptions() {
   if (optionValues.includes(currentValue)) select.value = currentValue;
 }
 
-function listenOrders() {
-  unsubscribeOrders = db.collection("orders").orderBy("order_no", "desc").onSnapshot(
+// Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...) --
+// bukan cuma supaya rapi, tapi karena Firestore rules menolak query yang
+// berpotensi mengembalikan dokumen di luar izin baca user (lihat komentar
+// di firestore.rules). Owner/Admin Kasir tetap lihat semua cabang seperti biasa.
+function listenOrders(profile) {
+  let query = db.collection("orders").orderBy("order_no", "desc");
+  if (!canAccessAllBranches(profile) && profile.cabang_id) {
+    query = db.collection("orders").where("cabang_id", "==", profile.cabang_id).orderBy("order_no", "desc");
+  }
+  unsubscribeOrders = query.onSnapshot(
     (snap) => {
       allOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderOrders();
@@ -123,12 +167,15 @@ function listenOrders() {
 
 function getFilteredOrders() {
   const search = document.getElementById("filter-search").value.trim().toLowerCase();
+  const cabangFilterEl = document.getElementById("filter-cabang");
+  const cabangId = cabangFilterEl ? cabangFilterEl.value : "";
   const produkId = document.getElementById("filter-produk").value;
   const gelombangLabel = document.getElementById("filter-gelombang").value;
   const statusBayar = document.getElementById("filter-bayar").value;
   const statusAmbil = document.getElementById("filter-ambil").value;
 
   return allOrders.filter((o) => {
+    if (cabangId && o.cabang_id !== cabangId) return false;
     if (search) {
       const hay = `${o.nama_pembeli} ${o.no_hp} ${o.order_no} ${formatOrderNo(o)}`.toLowerCase();
       if (!hay.includes(search)) return false;
@@ -145,6 +192,8 @@ function getFilteredOrders() {
 
 function resetFilters() {
   document.getElementById("filter-search").value = "";
+  const cabangFilterEl = document.getElementById("filter-cabang");
+  if (cabangFilterEl) cabangFilterEl.value = "";
   document.getElementById("filter-produk").value = "";
   document.getElementById("filter-gelombang").innerHTML = '<option value="">Semua Gelombang</option>';
   document.getElementById("filter-bayar").value = "";
@@ -165,6 +214,7 @@ function renderOrders() {
   }
 
   const isOwner = window.currentUserProfile && window.currentUserProfile.role === "owner";
+  const showCabangCol = canAccessAllBranches(window.currentUserProfile);
 
   container.innerHTML = `
     <div class="card" style="padding:0;">
@@ -174,6 +224,7 @@ function renderOrders() {
             <tr>
               <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
               <th>Nota / Tanggal</th>
+              ${showCabangCol ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
               <th>Produk & Gelombang</th>
               <th>Qty</th>
@@ -184,7 +235,7 @@ function renderOrders() {
             </tr>
           </thead>
           <tbody>
-            ${list.map((o) => renderRow(o, isOwner)).join("")}
+            ${list.map((o) => renderRow(o, isOwner, showCabangCol)).join("")}
           </tbody>
         </table>
       </div>
@@ -193,10 +244,11 @@ function renderOrders() {
   updateBulkToolbar();
 }
 
-function renderRow(o, isOwner) {
+function renderRow(o, isOwner, showCabangCol) {
   const items = o.items || [];
   const checked = selectedIds.has(o.id) ? "checked" : "";
   const janggal = hasPriceMismatch(o);
+  const cabangNama = o.cabang_id && allCabangMap[o.cabang_id] ? allCabangMap[o.cabang_id].nama : "-";
 
   const produkCell = items
     .map(
@@ -227,6 +279,7 @@ function renderRow(o, isOwner) {
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
+      ${showCabangCol ? `<td>${escapeHtml(cabangNama)}</td>` : ""}
       <td>
         <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>

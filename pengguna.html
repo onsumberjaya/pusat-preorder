@@ -51,10 +51,15 @@
         </div>
         <div class="field">
           <label>Role *</label>
-          <select id="user-role">
-            <option value="karyawan">Karyawan</option>
+          <select id="user-role" onchange="toggleUserCabangField('user-role', 'user-cabang-field')">
+            <option value="admin_kasir">Admin Kasir (semua cabang)</option>
+            <option value="karyawan">Karyawan (1 cabang saja)</option>
             <option value="owner">Owner</option>
           </select>
+        </div>
+        <div class="field" id="user-cabang-field" style="display:none;">
+          <label>Cabang *</label>
+          <select id="user-cabang-id"><option value="">Pilih Cabang</option></select>
         </div>
         <div id="user-form-alert"></div>
         <div style="display:flex; gap:10px; margin-top:18px;">
@@ -76,10 +81,15 @@
         </div>
         <div class="field">
           <label>Role *</label>
-          <select id="edit-user-role">
-            <option value="karyawan">Karyawan</option>
+          <select id="edit-user-role" onchange="toggleUserCabangField('edit-user-role', 'edit-user-cabang-field')">
+            <option value="admin_kasir">Admin Kasir (semua cabang)</option>
+            <option value="karyawan">Karyawan (1 cabang saja)</option>
             <option value="owner">Owner</option>
           </select>
+        </div>
+        <div class="field" id="edit-user-cabang-field" style="display:none;">
+          <label>Cabang *</label>
+          <select id="edit-user-cabang-id"><option value="">Pilih Cabang</option></select>
         </div>
         <div id="edit-user-form-alert"></div>
         <div style="display:flex; gap:10px; margin-top:18px;">

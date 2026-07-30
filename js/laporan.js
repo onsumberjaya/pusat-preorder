@@ -2,6 +2,8 @@ let lapOrders = [];
 let lapToko = { nama: "Toko Benih" };
 let lapFiltered = [];
 let lapProductsMap = {};
+let lapCabangMap = {};
+let lapShowCabang = false;
 
 function resolveWaveLabel(item) {
   const product = lapProductsMap[item.product_id];
@@ -21,15 +23,42 @@ function hasPriceMismatch(order) {
   });
 }
 
-window.onAuthReady = async function () {
+window.onAuthReady = async function (profile) {
   try {
-    const [orderSnap, prodSnap, tokoDoc] = await Promise.all([
-      db.collection("orders").orderBy("order_no", "desc").get(),
+    lapShowCabang = canAccessAllBranches(profile);
+
+    // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...) --
+    // kalau tidak, Firestore rules menolak seluruh query karena berpotensi
+    // mengembalikan pesanan cabang lain (lihat firestore.rules).
+    let ordersQuery = db.collection("orders").orderBy("order_no", "desc");
+    if (!lapShowCabang && profile.cabang_id) {
+      ordersQuery = db.collection("orders").where("cabang_id", "==", profile.cabang_id).orderBy("order_no", "desc");
+    }
+
+    const [orderSnap, prodSnap, cabangSnap, tokoDoc] = await Promise.all([
+      ordersQuery.get(),
       db.collection("products").orderBy("nama").get(),
+      db.collection("cabang").orderBy("nama").get(),
       db.collection("config").doc("toko").get(),
     ]);
     lapOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (tokoDoc.exists) lapToko = tokoDoc.data();
+
+    cabangSnap.docs.forEach((d) => {
+      lapCabangMap[d.id] = { id: d.id, ...d.data() };
+    });
+
+    if (lapShowCabang) {
+      document.getElementById("lap-cabang-field").style.display = "";
+      const cabangSelect = document.getElementById("lap-cabang");
+      Object.values(lapCabangMap).forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.nama;
+        cabangSelect.appendChild(opt);
+      });
+      cabangSelect.addEventListener("change", applyReportFilter);
+    }
 
     const select = document.getElementById("lap-produk");
     prodSnap.docs.forEach((d) => {
@@ -47,6 +76,10 @@ window.onAuthReady = async function () {
     document.getElementById("laporan-table").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
   }
 };
+
+function cabangNamaLap(cabangId) {
+  return cabangId && lapCabangMap[cabangId] ? lapCabangMap[cabangId].nama : "-";
+}
 
 // Pesanan lama (dibuat sebelum fitur nomor nota per-tahun ada) belum punya
 // nota_seq -> formatOrderNo() jatuh ke fallback pakai order_no, yang bisa
@@ -112,6 +145,8 @@ function applyReportFilter() {
   const dari = document.getElementById("lap-dari").value;
   const sampai = document.getElementById("lap-sampai").value;
   const produk = document.getElementById("lap-produk").value;
+  const cabangEl = document.getElementById("lap-cabang");
+  const cabangId = cabangEl ? cabangEl.value : "";
 
   const fromDate = dari ? new Date(dari + "T00:00:00") : null;
   const toDate = sampai ? new Date(sampai + "T23:59:59") : null;
@@ -121,6 +156,7 @@ function applyReportFilter() {
     if (fromDate && tgl < fromDate) return false;
     if (toDate && tgl > toDate) return false;
     if (produk && !(o.items || []).some((it) => it.product_name === produk)) return false;
+    if (cabangId && o.cabang_id !== cabangId) return false;
     return true;
   });
 
@@ -175,6 +211,7 @@ function renderReport() {
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
+      ${lapShowCabang ? `<td>${escapeHtml(cabangNamaLap(o.cabang_id))}</td>` : ""}
       <td>
         <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
@@ -199,6 +236,7 @@ function renderReport() {
           <thead>
             <tr>
               <th>Nota / Tanggal</th>
+              ${lapShowCabang ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
               <th>Produk & Gelombang</th>
               <th>Qty</th>
@@ -210,7 +248,7 @@ function renderReport() {
               <th>Cek Harga</th>
             </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="10" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>'}</tbody>
+          <tbody>${rows || `<tr><td colspan="${lapShowCabang ? 11 : 10}" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>`}</tbody>
         </table>
       </div>
     </div>`;
@@ -225,9 +263,12 @@ function exportExcel() {
   lapFiltered.forEach((o) => {
     const items = o.items && o.items.length ? o.items : [null];
     items.forEach((it) => {
-      data.push({
+      const row = {
         "No Pesanan": formatOrderNo(o),
         Tanggal: formatTanggal(o.tanggal),
+      };
+      if (lapShowCabang) row.Cabang = cabangNamaLap(o.cabang_id);
+      Object.assign(row, {
         Nama: o.nama_pembeli,
         "No HP": o.no_hp || "",
         Alamat: o.alamat || "",
@@ -244,6 +285,7 @@ function exportExcel() {
         "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
         Catatan: o.catatan || "",
       });
+      data.push(row);
     });
   });
   const ws = XLSX.utils.json_to_sheet(data);
@@ -264,22 +306,30 @@ function exportPdf() {
   doc.setFontSize(10);
   doc.text(`Laporan Pesanan - dicetak ${formatTanggal(new Date())}`, 14, 21);
 
-  const body = lapFiltered.map((o) => [
-    `${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`,
-    `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
-    (o.items || []).map((it) => `${it.product_name} x${it.jumlah}`).join("\n"),
-    (o.items || []).map((it) => resolveWaveLabel(it)).join("\n"),
-    (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
-    formatRupiah(o.total),
-    formatRupiah(o.paid_amount || 0),
-    formatRupiah(o.total - (o.paid_amount || 0)),
-    STATUS_BAYAR_LABEL[o.status_bayar],
-    o.is_diambil ? "Sudah" : "Belum",
-  ]);
+  const body = lapFiltered.map((o) => {
+    const row = [`${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`];
+    if (lapShowCabang) row.push(cabangNamaLap(o.cabang_id));
+    row.push(
+      `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
+      (o.items || []).map((it) => `${it.product_name} x${it.jumlah}`).join("\n"),
+      (o.items || []).map((it) => resolveWaveLabel(it)).join("\n"),
+      (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
+      formatRupiah(o.total),
+      formatRupiah(o.paid_amount || 0),
+      formatRupiah(o.total - (o.paid_amount || 0)),
+      STATUS_BAYAR_LABEL[o.status_bayar],
+      o.is_diambil ? "Sudah" : "Belum"
+    );
+    return row;
+  });
+
+  const head = ["Nota / Tanggal"];
+  if (lapShowCabang) head.push("Cabang");
+  head.push("Pemesan", "Produk", "Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan");
 
   doc.autoTable({
     startY: 27,
-    head: [["Nota / Tanggal", "Pemesan", "Produk", "Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan"]],
+    head: [head],
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [22, 163, 74] },

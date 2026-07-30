@@ -26,7 +26,7 @@ function updateGelombangFilterOptionsDash() {
   if (labels.has(currentValue)) gelSelect.value = currentValue;
 }
 
-window.onAuthReady = async function () {
+window.onAuthReady = async function (profile) {
   let ordersLoaded = false;
   let productsLoaded = false;
 
@@ -36,7 +36,14 @@ window.onAuthReady = async function () {
     renderDashboard();
   }
 
-  db.collection("orders").onSnapshot(
+  // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...), kalau
+  // tidak Firestore rules akan menolak query ini sepenuhnya (bukan cuma
+  // menyaring hasilnya) karena berpotensi mengembalikan data cabang lain.
+  let ordersQuery = db.collection("orders");
+  if (!canAccessAllBranches(profile) && profile.cabang_id) {
+    ordersQuery = ordersQuery.where("cabang_id", "==", profile.cabang_id);
+  }
+  ordersQuery.onSnapshot(
     (snap) => {
       dashOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       ordersLoaded = true;

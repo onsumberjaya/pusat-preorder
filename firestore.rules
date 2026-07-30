@@ -16,6 +16,27 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_active != false;
     }
 
+    // Admin Kasir: role baru pengganti "Karyawan" lama -- akses semua cabang,
+    // hanya tidak boleh kelola Produk/Akun/Profil Toko/Kelola Cabang (dibatasi
+    // di rule masing-masing collection itu, bukan di sini).
+    function isAdminKasir() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin_kasir';
+    }
+
+    // Owner & Admin Kasir boleh akses data pesanan SEMUA cabang.
+    // Karyawan (role baru, per-cabang) hanya boleh akses cabang miliknya sendiri
+    // -- ditentukan lewat field cabang_id di dokumen users miliknya.
+    function canAccessAllBranches() {
+      return isOwner() || isAdminKasir();
+    }
+
+    // cabang_id milik user yang sedang login (hanya relevan/terisi untuk role
+    // "karyawan"; kosong/null untuk Owner & Admin Kasir).
+    function userCabangId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.cabang_id;
+    }
+
     // Menghitung status bayar dari total & jumlah yang sudah dibayar, harus
     // sama persis dengan computeStatusBayar() di js/utils.js. Ini mencegah
     // seseorang mengirim data yang tidak konsisten (mis. status "lunas" tapi
@@ -61,6 +82,14 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // Daftar cabang: semua yang login boleh baca (dipakai buat dropdown pilih
+    // cabang di Input Pesanan/filter), hanya Owner yang boleh kelola (tambah/
+    // ubah/nonaktifkan cabang) lewat halaman "Kelola Cabang".
+    match /cabang/{cabangId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
     // Penomoran otomatis pesanan. Hanya field "seq" (angka) yang boleh
     // ditulis, dan nilainya wajib naik -- mencegah nomor nota/urut dirusak
     // atau dimundurkan (yang bisa menyebabkan nomor nota bentrok/duplikat).
@@ -80,30 +109,43 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // Pesanan: semua user aktif boleh baca & buat pesanan baru.
+    // Pesanan: user aktif boleh baca & buat pesanan baru -- TAPI dibatasi
+    // per-cabang untuk role "karyawan" (lihat canAccessAllBranches() di atas):
+    // Owner & Admin Kasir bebas semua cabang, Karyawan cabang lain SAMA SEKALI
+    // tidak bisa membaca/menyentuh pesanan cabang lain, walau lewat cara lain
+    // di luar tampilan aplikasi (mis. console browser / akses API langsung).
     // Setelah pesanan dibuat, hanya Owner yang boleh mengubah item/total/data
-    // pembeli; karyawan hanya boleh catat pembayaran & tandai diambil.
-    // Hapus pesanan dibatasi khusus Owner.
+    // pembeli; Admin Kasir & Karyawan hanya boleh catat pembayaran & tandai
+    // diambil (di cabang yang mereka boleh akses). Hapus pesanan dibatasi
+    // khusus Owner.
     match /orders/{orderId} {
-      allow read: if isSignedIn() && isActiveUser();
+      // Pakai .get('cabang_id', null) (bukan akses langsung) supaya pesanan
+      // lama dari sebelum fitur cabang ada (belum punya cabang_id) tidak bikin
+      // rule error -- otomatis dianggap "belum ada cabangnya" (null) sampai
+      // dimigrasi lewat halaman Kelola Cabang.
+      allow read: if isSignedIn() && isActiveUser()
+        && (canAccessAllBranches() || resource.data.get('cabang_id', null) == userCabangId());
 
-      // Saat pesanan baru dibuat, created_by wajib sama dengan yang login
-      // (tidak bisa mengaku-aku sebagai karyawan lain).
+      // Saat pesanan baru dibuat: created_by wajib sama dengan yang login
+      // (tidak bisa mengaku-aku sebagai karyawan lain), cabang_id wajib diisi,
+      // dan kalau yang input Karyawan cabang, cabang_id WAJIB sama dengan
+      // cabang_id akunnya sendiri (tidak bisa input atas nama cabang lain).
       allow create: if isSignedIn() && isActiveUser()
         && isValidOrderShape(request.resource.data)
-        && request.resource.data.created_by == request.auth.uid;
+        && request.resource.data.created_by == request.auth.uid
+        && request.resource.data.cabang_id is string && request.resource.data.cabang_id.size() > 0
+        && (canAccessAllBranches() || request.resource.data.cabang_id == userCabangId());
 
       // order_no/created_by/created_at/nota_tahun/nota_seq tidak boleh
       // berubah oleh siapa pun (termasuk Owner) -- itu identitas & nomor
-      // nota permanen milik pesanan. Karyawan (bukan Owner) tambahan lagi
-      // hanya boleh menyentuh field pembayaran & status pengambilan.
-      // Pakai .get(key, null) (bukan akses langsung) untuk order_no/created_by/
-      // created_at supaya tidak error kalau pesanan lama dari awal-awal
-      // development belum punya salah satu field itu. Khusus nota_tahun/
-      // nota_seq: kalau pesanan lama belum punya (null), boleh diisi SEKALI
-      // (dipakai fitur "Perbaiki Nomor Nota" untuk menomori ulang pesanan
-      // lama yang bentrok) -- begitu sudah terisi, langsung terkunci permanen
-      // seperti biasa.
+      // nota permanen milik pesanan. cabang_id juga terkunci permanen setelah
+      // terisi (pesanan tidak bisa dipindah cabang), TAPI kalau pesanan lama
+      // belum punya cabang_id (null), boleh diisi SEKALI -- dipakai fitur
+      // migrasi data lama di halaman Kelola Cabang -- begitu sudah terisi,
+      // langsung terkunci permanen seperti nota_tahun/nota_seq. Karyawan/Admin
+      // Kasir (bukan Owner) tambahan lagi hanya boleh menyentuh field
+      // pembayaran & status pengambilan, dan hanya untuk pesanan di cabang
+      // yang boleh mereka akses.
       allow update: if isSignedIn() && isActiveUser()
         && isValidOrderShape(request.resource.data)
         && request.resource.data.get('created_by', null) == resource.data.get('created_by', null)
@@ -111,16 +153,26 @@ service cloud.firestore {
         && request.resource.data.get('created_at', null) == resource.data.get('created_at', null)
         && (resource.data.get('nota_tahun', null) == null || request.resource.data.nota_tahun == resource.data.nota_tahun)
         && (resource.data.get('nota_seq', null) == null || request.resource.data.nota_seq == resource.data.nota_seq)
+        && (resource.data.get('cabang_id', null) == null || request.resource.data.cabang_id == resource.data.cabang_id)
+        && (canAccessAllBranches() || resource.data.get('cabang_id', null) == userCabangId())
         && (isOwner() || isEmployeeAllowedOrderEdit(resource.data, request.resource.data));
 
       allow delete: if isOwner();
 
       match /payments/{paymentId} {
-        allow read: if isSignedIn() && isActiveUser();
+        // Baca/tulis riwayat pembayaran ikut dibatasi ke cabang pesanan
+        // induknya (dicek lewat get() ke dokumen orders/{orderId}), supaya
+        // Karyawan cabang lain juga tidak bisa mengintip lewat subcollection
+        // ini secara langsung.
+        allow read: if isSignedIn() && isActiveUser()
+          && (canAccessAllBranches()
+              || get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null) == userCabangId());
         allow create: if isSignedIn() && isActiveUser()
           && request.resource.data.jumlah is number
           && request.resource.data.jumlah > 0
-          && request.resource.data.created_by == request.auth.uid;
+          && request.resource.data.created_by == request.auth.uid
+          && (canAccessAllBranches()
+              || get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null) == userCabangId());
         allow update, delete: if isOwner();
       }
     }
