@@ -140,6 +140,12 @@ function renderForm() {
   // dipindah cabang lain lewat form ini.
   const cabangLocked = isKaryawanCabang || isEdit;
   const lockedCabangId = isKaryawanCabang ? profile.cabang_id : isEdit ? editOrderData.cabang_id : "";
+  // Untuk akun Owner/Admin Kasir (yang boleh pilih cabang manapun) saat BUAT
+  // BARU: otomatis pilihkan cabang yang namanya mengandung "pusat" (kalau
+  // ada) supaya tidak perlu klik ekstra untuk kasus paling umum -- tetap
+  // bisa diganti manual ke cabang lain sebelum disimpan.
+  const cabangAktif = allCabangInput.filter((c) => c.is_active !== false);
+  const defaultCabang = !cabangLocked ? cabangAktif.find((c) => /pusat/i.test(c.nama)) : null;
   const cabangFieldHtml = cabangLocked
     ? `<div class="field">
         <label>Cabang</label>
@@ -150,9 +156,8 @@ function renderForm() {
         <label>Cabang *</label>
         <select id="f-cabang" required>
           <option value="">Pilih Cabang</option>
-          ${allCabangInput
-            .filter((c) => c.is_active !== false)
-            .map((c) => `<option value="${c.id}">${escapeHtml(c.nama)}</option>`)
+          ${cabangAktif
+            .map((c) => `<option value="${c.id}" ${defaultCabang && defaultCabang.id === c.id ? "selected" : ""}>${escapeHtml(c.nama)}</option>`)
             .join("")}
         </select>
       </div>`;
@@ -410,6 +415,18 @@ async function handleSubmit(e) {
       ? `<div class="alert alert-error">Total pesanan baru (${formatRupiah(total)}) lebih kecil dari yang sudah dibayar (${formatRupiah(paidAmount)}). Kurangi jumlah dulu, atau sesuaikan pembayarannya lewat Detail Pesanan di Daftar Pesanan.</div>`
       : `<div class="alert alert-error">Jumlah bayar tidak boleh melebihi total pesanan.</div>`;
     return;
+  }
+
+  // Pesanan baru dengan bayar 0 atau kurang dari total = nota tempo/belum
+  // lunas -- beri jendela konfirmasi supaya tidak kelewatan tanpa sadar
+  // sebelum benar-benar tersimpan.
+  if (!editOrderId && paidAmount < total) {
+    const sisaBelum = total - paidAmount;
+    const pesan =
+      paidAmount <= 0
+        ? `Pesanan ini akan disimpan sebagai NOTA TEMPO (Belum Bayar sama sekali).\n\nTotal: ${formatRupiah(total)}\n\nLanjutkan simpan?`
+        : `Pesanan ini akan disimpan dengan status BELUM LUNAS (Bayar Sebagian).\n\nTotal: ${formatRupiah(total)}\nDibayar: ${formatRupiah(paidAmount)}\nSisa/Tempo: ${formatRupiah(sisaBelum)}\n\nLanjutkan simpan?`;
+    if (!confirm(pesan)) return;
   }
 
   const itemsData = validLines.map((l) => {
