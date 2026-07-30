@@ -37,6 +37,17 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.cabang_id;
     }
 
+    // Bandingkan cabang_id sebuah pesanan dengan cabang_id user Karyawan yang
+    // sedang login -- TAPI kalau cabang_id user KOSONG (null, misalnya akun
+    // Karyawan yang ke-setup tanpa cabang lewat kesalahan input manual di
+    // Firestore Console), langsung dianggap TIDAK cocok apa pun isi
+    // cabangId-nya. Tanpa ini, pesanan lama yang juga belum punya cabang_id
+    // (null) bisa "kebetulan cocok" (null == null) dan malah bisa dibaca
+    // Karyawan yang salah setup itu.
+    function sameCabang(cabangId) {
+      return userCabangId() != null && cabangId == userCabangId();
+    }
+
     // Menghitung status bayar dari total & jumlah yang sudah dibayar, harus
     // sama persis dengan computeStatusBayar() di js/utils.js. Ini mencegah
     // seseorang mengirim data yang tidak konsisten (mis. status "lunas" tapi
@@ -124,7 +135,7 @@ service cloud.firestore {
       // rule error -- otomatis dianggap "belum ada cabangnya" (null) sampai
       // dimigrasi lewat halaman Kelola Cabang.
       allow read: if isSignedIn() && isActiveUser()
-        && (canAccessAllBranches() || resource.data.get('cabang_id', null) == userCabangId());
+        && (canAccessAllBranches() || sameCabang(resource.data.get('cabang_id', null)));
 
       // Saat pesanan baru dibuat: created_by wajib sama dengan yang login
       // (tidak bisa mengaku-aku sebagai karyawan lain), cabang_id wajib diisi,
@@ -134,7 +145,7 @@ service cloud.firestore {
         && isValidOrderShape(request.resource.data)
         && request.resource.data.created_by == request.auth.uid
         && request.resource.data.cabang_id is string && request.resource.data.cabang_id.size() > 0
-        && (canAccessAllBranches() || request.resource.data.cabang_id == userCabangId());
+        && (canAccessAllBranches() || sameCabang(request.resource.data.cabang_id));
 
       // order_no/created_by/created_at/nota_tahun/nota_seq tidak boleh
       // berubah oleh siapa pun (termasuk Owner) -- itu identitas & nomor
@@ -154,7 +165,7 @@ service cloud.firestore {
         && (resource.data.get('nota_tahun', null) == null || request.resource.data.nota_tahun == resource.data.nota_tahun)
         && (resource.data.get('nota_seq', null) == null || request.resource.data.nota_seq == resource.data.nota_seq)
         && (resource.data.get('cabang_id', null) == null || request.resource.data.cabang_id == resource.data.cabang_id)
-        && (canAccessAllBranches() || resource.data.get('cabang_id', null) == userCabangId())
+        && (canAccessAllBranches() || sameCabang(resource.data.get('cabang_id', null)))
         && (isOwner() || isEmployeeAllowedOrderEdit(resource.data, request.resource.data));
 
       allow delete: if isOwner();
@@ -166,13 +177,13 @@ service cloud.firestore {
         // ini secara langsung.
         allow read: if isSignedIn() && isActiveUser()
           && (canAccessAllBranches()
-              || get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null) == userCabangId());
+              || sameCabang(get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null)));
         allow create: if isSignedIn() && isActiveUser()
           && request.resource.data.jumlah is number
           && request.resource.data.jumlah > 0
           && request.resource.data.created_by == request.auth.uid
           && (canAccessAllBranches()
-              || get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null) == userCabangId());
+              || sameCabang(get(/databases/$(database)/documents/orders/$(orderId)).data.get('cabang_id', null)));
         allow update, delete: if isOwner();
       }
     }

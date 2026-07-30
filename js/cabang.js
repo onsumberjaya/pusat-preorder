@@ -30,7 +30,7 @@ function renderCabang() {
     <div class="card" style="padding:0;">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nama Cabang</th><th>Alamat</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Nama Cabang</th><th>Alamat</th><th>No. HP</th><th>Status</th><th></th></tr></thead>
           <tbody>
             ${allCabang
               .map(
@@ -38,6 +38,7 @@ function renderCabang() {
               <tr>
                 <td style="font-weight:600;">${escapeHtml(c.nama)}</td>
                 <td style="color:var(--gray-500);">${escapeHtml(c.alamat || "-")}</td>
+                <td style="color:var(--gray-500);">${escapeHtml(c.no_hp || "-")}</td>
                 <td><span class="badge ${c.is_active !== false ? "badge-green" : "badge-red"}">${c.is_active !== false ? "Aktif" : "Nonaktif"}</span></td>
                 <td style="text-align:right; white-space:nowrap;">
                   <button class="btn-secondary btn-sm" onclick="openCabangModal('${c.id}')">Edit</button>
@@ -65,6 +66,7 @@ function openCabangModal(id) {
     document.getElementById("cabang-id").value = c.id;
     document.getElementById("cabang-nama").value = c.nama || "";
     document.getElementById("cabang-alamat").value = c.alamat || "";
+    document.getElementById("cabang-nohp").value = c.no_hp || "";
     document.getElementById("cabang-modal-title").textContent = "Edit Cabang";
   }
   document.getElementById("cabang-modal").style.display = "flex";
@@ -79,17 +81,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = document.getElementById("cabang-id").value;
     const nama = document.getElementById("cabang-nama").value.trim();
     const alamat = document.getElementById("cabang-alamat").value.trim();
+    const noHp = document.getElementById("cabang-nohp").value.trim();
     const alertBox = document.getElementById("cabang-form-alert");
     const btn = document.getElementById("cabang-submit-btn");
     alertBox.innerHTML = "";
     btn.disabled = true;
     try {
       if (id) {
-        await db.collection("cabang").doc(id).update({ nama, alamat });
+        await db.collection("cabang").doc(id).update({ nama, alamat, no_hp: noHp });
       } else {
         await db.collection("cabang").add({
           nama,
           alamat,
+          no_hp: noHp,
           is_active: true,
           created_at: firebase.firestore.FieldValue.serverTimestamp(),
         });

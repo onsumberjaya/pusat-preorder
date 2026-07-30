@@ -19,6 +19,30 @@ window.onAuthReady = async function () {
     }
     notaOrder = { id: orderDoc.id, ...orderDoc.data() };
     if (tokoDoc.exists) notaToko = tokoDoc.data();
+
+    // Kop nota pakai data CABANG tempat pesanan ini dibuat (nama/alamat/
+    // no. HP-nya sendiri), bukan 1 Profil Toko yang sama untuk semua --
+    // supaya pembeli di cabang dapat nota dengan alamat yang benar-benar
+    // sesuai lokasi cabang itu. Kalau pesanan belum punya cabang_id (data
+    // lama sebelum fitur cabang ada) atau cabang-nya sudah dihapus, tetap
+    // pakai Profil Toko utama seperti biasa (fallback aman).
+    if (notaOrder.cabang_id) {
+      try {
+        const cabangDoc = await db.collection("cabang").doc(notaOrder.cabang_id).get();
+        if (cabangDoc.exists) {
+          const c = cabangDoc.data();
+          notaToko = {
+            nama: c.nama || notaToko.nama,
+            alamat: c.alamat || notaToko.alamat,
+            no_hp: c.no_hp || notaToko.no_hp,
+          };
+        }
+      } catch (err) {
+        // Gagal ambil data cabang (mis. karena hak akses) tidak boleh
+        // menggagalkan seluruh nota -- tetap tampil pakai Profil Toko utama.
+      }
+    }
+
     renderNota();
   } catch (err) {
     document.getElementById("nota-container").innerHTML = `<div class="alert alert-error no-print" style="margin:20px;">${friendlyFirebaseError(err)}</div>`;

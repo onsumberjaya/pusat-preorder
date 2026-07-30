@@ -13,11 +13,22 @@ function emptyLine() {
 
 let productsListReady = false;
 
-window.onAuthReady = async function () {
+window.onAuthReady = async function (profile) {
   const params = new URLSearchParams(location.search);
   editOrderId = params.get("edit");
 
   if (editOrderId) {
+    // Halaman Edit Pesanan (form lengkap: item/total/nama/alamat) memang
+    // cuma untuk Owner -- Admin Kasir & Karyawan cabang hanya boleh
+    // menyentuh pembayaran/status pengambilan lewat "Detail / Bayar" di
+    // Daftar Pesanan (baik dari sisi Rules maupun tampilan). Dicek di awal
+    // supaya tidak sempat mengisi form lengkap dulu baru gagal pas Simpan.
+    if (!profile || profile.role !== "owner") {
+      showToast("Halaman Edit Pesanan (item/total/data pembeli) khusus untuk Owner.", "error");
+      window.location.href = "pesanan.html";
+      return;
+    }
+
     document.getElementById("page-heading").textContent = "Edit Pesanan";
     try {
       const orderDoc = await db.collection("orders").doc(editOrderId).get();
@@ -34,7 +45,13 @@ window.onAuthReady = async function () {
         jumlah: String(it.jumlah),
       }));
     } catch (err) {
-      showToast(friendlyFirebaseError(err), "error");
+      // Bisa gagal karena macam-macam sebab (pesanan dari cabang lain yang
+      // ditolak Rules, koneksi putus, dll) -- jangan lanjut render form
+      // dengan editOrderData kosong (bisa crash halaman putih), langsung
+      // arahkan balik ke Daftar Pesanan dengan pesan yang jelas.
+      showToast("Gagal membuka pesanan ini: " + friendlyFirebaseError(err), "error");
+      window.location.href = "pesanan.html";
+      return;
     }
   }
 
