@@ -292,11 +292,12 @@ h1.page-title { font-size: 23px; margin: 0 0 4px; color: var(--gray-900); font-w
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-5 { grid-template-columns: repeat(5, 1fr); gap: 12px; }
 @media (max-width: 860px) {
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
 }
 
 label { display: block; font-size: 12.5px; font-weight: 700; color: var(--gray-700); margin-bottom: 5px; }
@@ -481,6 +482,11 @@ table tbody tr:hover { background: var(--gray-50); }
 .stat-card.brand .stat-icon { background: rgba(255, 255, 255, 0.16); color: #fff; }
 .stat-card.brand .stat-label { color: var(--brand-100); }
 .stat-card.brand .stat-value { color: #fff; }
+
+.grid-5 .stat-card { padding: 14px; gap: 10px; }
+.grid-5 .stat-card .stat-icon { width: 32px; height: 32px; font-size: 15px; }
+.grid-5 .stat-card .stat-label { font-size: 10.5px; margin-bottom: 4px; }
+.grid-5 .stat-card .stat-value { font-size: 19px; }
 
 .card-heading {
   display: flex;

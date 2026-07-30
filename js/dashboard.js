@@ -260,7 +260,7 @@ function renderDashboard() {
 
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `
-    <div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="grid grid-5" style="margin-bottom:20px;">
       <div class="stat-card brand">
         <div class="stat-icon"><i class="ph-bold ph-users-three"></i></div>
         <div class="stat-body"><div class="stat-label">Jumlah Pembeli</div><div class="stat-value">${pembeliUnik}</div></div>
