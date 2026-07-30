@@ -234,7 +234,7 @@ function renderOrders() {
         <table>
           <thead>
             <tr>
-              <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
+              <th><input type="checkbox" id="select-all" onclick="onSelectAllClick(event)" /></th>
               <th>Nota / Tanggal</th>
               ${showCabangCol ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
@@ -254,6 +254,7 @@ function renderOrders() {
     </div>
   `;
   updateBulkToolbar();
+  syncSelectAllCheckbox();
 }
 
 function renderRow(o, isOwner, showCabangCol) {
@@ -286,7 +287,7 @@ function renderRow(o, isOwner, showCabangCol) {
 
   return `
     <tr>
-      <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
+      <td><input type="checkbox" ${checked} style="${selectionModeActive ? "" : "display:none;"}" onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
@@ -314,16 +315,52 @@ function renderRow(o, isOwner, showCabangCol) {
 }
 
 // ---------- Seleksi & Bulk Action ----------
+// Kotak centang per baris SEMBUNYI secara default (mencegah ketidaksengajaan
+// klik saat mau lihat detail/cetak nota) -- baru muncul begitu mode pilih
+// diaktifkan lewat kotak centang di header:
+//   klik 1x header -> aktifkan mode pilih (kotak per baris muncul, belum ada yang terpilih)
+//   klik 2x header -> pilih semua baris yang sedang tampil
+//   klik 3x header -> batalkan semua pilihan & sembunyikan lagi kotaknya
+let selectionModeActive = false;
+
+function onSelectAllClick(e) {
+  e.preventDefault(); // checked/indeterminate diatur manual lewat syncSelectAllCheckbox(), bukan oleh browser
+  const visible = getFilteredOrders();
+  const allSelected = visible.length > 0 && visible.every((o) => selectedIds.has(o.id));
+
+  if (!selectionModeActive) {
+    selectionModeActive = true;
+  } else if (!allSelected) {
+    visible.forEach((o) => selectedIds.add(o.id));
+  } else {
+    selectedIds.clear();
+    selectionModeActive = false;
+  }
+  renderOrders();
+}
+
+function syncSelectAllCheckbox() {
+  const el = document.getElementById("select-all");
+  if (!el) return;
+  const visible = getFilteredOrders();
+  const selectedVisibleCount = visible.filter((o) => selectedIds.has(o.id)).length;
+  if (!selectionModeActive || selectedVisibleCount === 0) {
+    el.checked = false;
+    el.indeterminate = false;
+  } else if (selectedVisibleCount === visible.length) {
+    el.checked = true;
+    el.indeterminate = false;
+  } else {
+    el.checked = false;
+    el.indeterminate = true; // sebagian terpilih -- tampil garis (-) di kotaknya
+  }
+}
+
 function toggleSelect(id, checked) {
   if (checked) selectedIds.add(id);
   else selectedIds.delete(id);
+  syncSelectAllCheckbox();
   updateBulkToolbar();
-}
-function toggleSelectAll(checked) {
-  const visible = getFilteredOrders();
-  if (checked) visible.forEach((o) => selectedIds.add(o.id));
-  else visible.forEach((o) => selectedIds.delete(o.id));
-  renderOrders();
 }
 function updateBulkToolbar() {
   const toolbar = document.getElementById("bulk-toolbar");
