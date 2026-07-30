@@ -30,13 +30,49 @@ auth.onAuthStateChanged(async (user) => {
 
     if (typeof renderSidebar === "function") renderSidebar(profile);
     if (typeof window.onAuthReady === "function") window.onAuthReady(profile);
+
+    watchSingleSession(user.uid);
   } catch (err) {
     console.error(err);
     showToast("Gagal memuat profil pengguna.", "error");
   }
 });
 
+// Fitur "1 sesi login per perangkat". localStorage dibagi otomatis ke semua
+// tab dalam browser yang sama di komputer yang sama -- jadi buka beberapa
+// tab di 1 komputer tetap dianggap 1 sesi, tidak saling menendang.
+let sessionKickHandled = false;
+function watchSingleSession(uid) {
+  const localSessionId = localStorage.getItem("device_session_id");
+
+  if (!localSessionId) {
+    // Sesi ini belum tercatat lokal -- kemungkinan besar login dari SEBELUM
+    // fitur ini ada, atau localStorage sempat kepencet bersih. Daripada
+    // langsung tendang paksa (bisa mengganggu semua orang begitu fitur ini
+    // baru diaktifkan), anggap saja perangkat ini sah dan daftarkan sebagai
+    // sesi aktif sekarang.
+    const newId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem("device_session_id", newId);
+    db.collection("users").doc(uid).update({ active_session_id: newId }).catch(() => {});
+    return;
+  }
+
+  db.collection("users")
+    .doc(uid)
+    .onSnapshot((snap) => {
+      if (sessionKickHandled || !snap.exists) return;
+      const serverSessionId = snap.data().active_session_id;
+      if (serverSessionId && serverSessionId !== localSessionId) {
+        sessionKickHandled = true;
+        localStorage.removeItem("device_session_id");
+        alert("Sesi Anda diakhiri karena akun ini baru saja login dari perangkat lain.");
+        auth.signOut().then(() => (window.location.href = "index.html"));
+      }
+    });
+}
+
 function logout() {
   if (!confirm("Keluar dari aplikasi?")) return;
+  localStorage.removeItem("device_session_id");
   auth.signOut().then(() => (window.location.href = "index.html"));
 }

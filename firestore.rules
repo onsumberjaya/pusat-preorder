@@ -85,6 +85,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isOwner());
       allow write: if isOwner();
+      // Fitur "1 sesi login per perangkat": tiap orang boleh update field
+      // active_session_id di profilnya SENDIRI saja -- field lain (role,
+      // cabang_id, is_active, dst) tetap terkunci, cuma Owner yang boleh
+      // ubah itu.
+      allow update: if isSignedIn() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active_session_id']);
     }
 
     // Produk & gelombang harga: semua yang login boleh baca, hanya Owner boleh ubah.
