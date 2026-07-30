@@ -285,6 +285,13 @@ main.content {
   padding: 22px;
 }
 
+.card-filter {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 6px 0 10px;
+}
+
 h1.page-title { font-size: 23px; margin: 0 0 4px; color: var(--gray-900); font-weight: 800; letter-spacing: -0.01em; }
 .page-subtitle { color: var(--gray-500); font-size: 14px; margin: 0 0 22px; }
 
