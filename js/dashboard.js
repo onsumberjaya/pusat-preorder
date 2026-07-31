@@ -94,10 +94,22 @@ let dashProfile = null;
 // ini menampilkan ringkasan, bukan angka yang harus update detik-itu-juga --
 // listener real-time yang menyala terus di halaman ini boros bacaan
 // Firestore. Klik "Muat Ulang" kapan pun perlu angka terbaru.
+//
+// Rentang tanggal (dari filter "Hari Ini"/"7 Hari Terakhir"/"Bulan Ini"/
+// "Rentang Tanggal...") DIBATASI LANGSUNG DI QUERY FIRESTORE lewat
+// where('tanggal', ...) -- bukan baca SELURUH koleksi "orders" lalu disaring
+// di browser seperti sebelumnya. Ini penting karena koleksi orders akan terus
+// bertambah seiring waktu; tanpa ini, tiap buka Dashboard = baca ulang
+// seluruh riwayat pesanan sejak awal, padahal biasanya yang dilihat cuma
+// data hari ini/minggu ini/bulan ini. Pilihan "Semua Waktu" tetap tersedia
+// dan memang sengaja baca semua -- itu pilihan eksplisit pengguna, sama
+// seperti tombol "Cek Nomor Nota Bentrok (Riwayat Penuh)" di Laporan.
 async function loadDashboardData(profile) {
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
   try {
+    const { from, to } = getDateRange();
+
     // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...), kalau
     // tidak Firestore rules akan menolak query ini sepenuhnya (bukan cuma
     // menyaring hasilnya) karena berpotensi mengembalikan data cabang lain.
@@ -105,6 +117,8 @@ async function loadDashboardData(profile) {
     if (!canAccessAllBranches(profile) && profile.cabang_id) {
       ordersQuery = ordersQuery.where("cabang_id", "==", profile.cabang_id);
     }
+    if (from) ordersQuery = ordersQuery.where("tanggal", ">=", from);
+    if (to) ordersQuery = ordersQuery.where("tanggal", "<=", to);
 
     const [orderSnap, prodSnap, cabangSnap] = await Promise.all([
       ordersQuery.get(),
@@ -129,6 +143,13 @@ function refreshDashboard() {
   if (dashProfile) loadDashboardData(dashProfile);
 }
 
+// Ganti periode/rentang tanggal = perlu baca ulang data dari server (query
+// berubah), beda dari ganti filter Gelombang/Cabang yang cukup disaring ulang
+// di data yang sudah ada di memori (lihat filteredDashOrders()).
+function reloadDashboardForDateChange() {
+  if (dashProfile) loadDashboardData(dashProfile);
+}
+
 window.onAuthReady = async function (profile) {
   dashProfile = profile;
   loadDashboardData(profile);
@@ -138,10 +159,14 @@ window.onAuthReady = async function (profile) {
     document.getElementById("filter-dari").style.display = isCustom ? "block" : "none";
     document.getElementById("dash-to-label").style.display = isCustom ? "inline" : "none";
     document.getElementById("filter-sampai").style.display = isCustom ? "block" : "none";
-    renderDashboard();
+    // Kalau baru pindah ke "Rentang Tanggal..." tapi tanggalnya belum diisi,
+    // jangan reload dulu (tanggal kosong = query tanpa batas, sama seperti
+    // "Semua Waktu") -- tunggu sampai kedua tanggal diisi lewat listener
+    // filter-dari/filter-sampai di bawah.
+    if (!isCustom) reloadDashboardForDateChange();
   });
-  document.getElementById("filter-dari").addEventListener("change", renderDashboard);
-  document.getElementById("filter-sampai").addEventListener("change", renderDashboard);
+  document.getElementById("filter-dari").addEventListener("change", reloadDashboardForDateChange);
+  document.getElementById("filter-sampai").addEventListener("change", reloadDashboardForDateChange);
   document.getElementById("filter-gelombang-dash").addEventListener("change", renderDashboard);
   document.getElementById("filter-cabang-dash").addEventListener("change", renderDashboard);
 };
@@ -171,14 +196,14 @@ function getDateRange() {
   return { from, to };
 }
 
+// Rentang tanggal SUDAH dibatasi di query Firestore lewat loadDashboardData()
+// -- dashOrders yang ada di memori sudah otomatis sesuai periode yang
+// dipilih. Fungsi ini cuma menyaring 2 filter sisanya (Gelombang & Cabang)
+// yang tidak perlu baca ulang ke server, cukup disaring di data yang sudah ada.
 function filteredDashOrders() {
-  const { from, to } = getDateRange();
   const gelombang = document.getElementById("filter-gelombang-dash").value;
   const cabangFilter = document.getElementById("filter-cabang-dash").value;
   return dashOrders.filter((o) => {
-    const tgl = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
-    if (from && tgl < from) return false;
-    if (to && tgl > to) return false;
     if (gelombang && !(o.items || []).some((it) => resolveWaveLabelDash(it) === gelombang)) return false;
     if (cabangFilter && o.cabang_id !== cabangFilter) return false;
     return true;
