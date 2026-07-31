@@ -496,7 +496,7 @@ table tbody tr:hover { background: var(--gray-50); }
 
 /* Kotak pembungkus canvas grafik "Pesanan Masuk" -- tingginya diatur lewat
    CSS (bukan aspect-ratio bawaan Chart.js) supaya bisa dibedakan per layar. */
-.chart-waktu-box { position: relative; height: 220px; }
+.chart-waktu-box { position: relative; height: 250px; }
 
 /* Kotak pembungkus canvas grafik bar (Jumlah Pesanan per Produk, Jumlah Unit
    Terjual per Alamat) -- width:100% + position:relative supaya Chart.js
@@ -512,7 +512,7 @@ table tbody tr:hover { background: var(--gray-50); }
   .grid-5 .stat-card .stat-value { font-size: 15px; }
 
   /* Grafik Pesanan Masuk di HP: awalnya 505px, diturunkan ~28% jadi 365px. */
-  .chart-waktu-box { height: 365px; }
+  .chart-waktu-box { height: 330px; }
 
   /* Judul halaman dikecilkan sedikit & tombol Filter/Muat Ulang dirapatkan
      supaya tetap muat satu baris bersama judul (Dashboard, Daftar Pesanan). */
