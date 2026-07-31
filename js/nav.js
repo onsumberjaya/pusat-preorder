@@ -75,7 +75,7 @@ function renderTopbar(profile) {
         <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
           <span id="topbar-role-text">${escapeHtml(roleLabel(profile.role))}</span>${displayName ? " · " + displayName : ""}
         </div>
-        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password </button>
+        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
         <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
       </div>
     </div>
