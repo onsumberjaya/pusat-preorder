@@ -1,5 +1,6 @@
 let dashOrders = [];
 let dashProducts = [];
+let dashProductsMap = {};
 let allCabangDash = [];
 let chartProduk = null;
 let chartAlamat = null;
@@ -100,6 +101,8 @@ async function loadDashboardData(profile) {
     ]);
     dashOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     dashProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    dashProductsMap = {};
+    dashProducts.forEach((p) => (dashProductsMap[p.id] = p));
     allCabangDash = cabangSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     updateGelombangFilterOptionsDash();
@@ -241,6 +244,7 @@ function renderDashboard() {
   const jumlahDiambil = orders.filter((o) => o.is_diambil).length;
   const jumlahBelumDiambil = jumlahNota - jumlahDiambil;
   const pembeliUnik = new Set(orders.map((o) => (o.nama_pembeli || "").trim().toLowerCase())).size;
+  const jumlahJanggal = orders.filter((o) => hasOrderAnomaly(o, dashProductsMap)).length;
 
   const perProduk = {};
   const perProdukPerCabang = {};
@@ -269,6 +273,19 @@ function renderDashboard() {
 
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `
+    ${jumlahJanggal > 0 ? `
+    <div class="card" style="margin-bottom:16px; background:#fef2f2; border-color:#fecaca;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="card-heading-icon" style="background:#fee2e2; color:#b91c1c;"><i class="ph-bold ph-warning"></i></span>
+          <div>
+            <h3 style="font-size:14px; margin:0;">${jumlahJanggal} Pesanan Terdeteksi Janggal</h3>
+            <p style="font-size:12.5px; color:var(--gray-500); margin:2px 0 0;">Total/harga per item tidak cocok dengan data produk saat ini atau tidak konsisten secara hitungan -- cek satu per satu, mungkin memang wajar (harga produk berubah setelah pesanan dibuat), tapi layak dipastikan.</p>
+          </div>
+        </div>
+        <a href="pesanan.html?anomali=1" class="btn-secondary btn-sm" style="white-space:nowrap;">Cek di Daftar Pesanan</a>
+      </div>
+    </div>` : ""}
     <div class="grid grid-5" style="margin-bottom:20px;">
       <div class="stat-card brand">
         <div class="stat-icon"><i class="ph-bold ph-users-three"></i></div>

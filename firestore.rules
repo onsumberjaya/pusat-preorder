@@ -57,6 +57,20 @@ service cloud.firestore {
     }
 
     // Aturan bentuk data pesanan yang berlaku baik saat dibuat maupun diedit.
+    //
+    // CATATAN KETERBATASAN (keputusan sadar, bukan kelupaan): rules ini TIDAK
+    // memvalidasi bahwa "total" benar-benar sama dengan jumlah seluruh
+    // items[].subtotal, atau bahwa harga tiap item cocok dengan harga produk
+    // yang berlaku -- bahasa Firestore Security Rules tidak punya loop/reduce
+    // atas list yang panjangnya dinamis, jadi itu tidak bisa divalidasi di
+    // sini tanpa Cloud Function (yang perlu upgrade ke plan Blaze). Karena
+    // proyek ini sengaja dibuat 100% gratis tanpa Cloud Function, celah ini
+    // diterima sebagai risiko yang dimitigasi lewat DETEKSI di sisi aplikasi
+    // saja (lihat hasOrderAnomaly() di js/utils.js, dipakai di Dashboard/
+    // Daftar Pesanan/Laporan) -- bukan dicegah di level server. Risikonya
+    // terbatas ke staf yang sudah punya akun login (Owner/Admin Kasir/
+    // Karyawan) yang sengaja memanggil Firestore langsung lewat console
+    // browser, bukan siapa pun dari luar.
     function isValidOrderShape(data) {
       return data.nama_pembeli is string && data.nama_pembeli.size() > 0
         && data.items is list && data.items.size() > 0
@@ -70,9 +84,19 @@ service cloud.firestore {
     // catat pembayaran (paid_amount/status_bayar) & tandai diambil
     // (is_diambil/tanggal_ambil). Di luar field ini -- termasuk items, total,
     // nama_pembeli, alamat -- WAJIB lewat Owner.
+    // paid_amount juga WAJIB tidak boleh turun untuk role selain Owner --
+    // tanpa ini, seseorang yang paham DevTools/console browser bisa memanggil
+    // Firestore langsung (bukan lewat tampilan aplikasi, yang cuma bisa
+    // menambah lewat form catat pembayaran) untuk mengecilkan/mereset
+    // paid_amount, menyembunyikan uang yang sudah tercatat masuk tanpa
+    // meninggalkan jejak di angka pesanan (riwayat di subcollection
+    // "payments" tetap ada & tidak bisa disentuh non-Owner, tapi tanpa
+    // aturan ini paid_amount di dokumen pesanan bisa tidak sinkron dengan
+    // riwayat itu).
     function isEmployeeAllowedOrderEdit(before, after) {
       return after.diff(before).affectedKeys()
-        .hasOnly(['paid_amount', 'status_bayar', 'is_diambil', 'tanggal_ambil']);
+        .hasOnly(['paid_amount', 'status_bayar', 'is_diambil', 'tanggal_ambil'])
+        && after.get('paid_amount', 0) >= before.get('paid_amount', 0);
     }
 
     // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.

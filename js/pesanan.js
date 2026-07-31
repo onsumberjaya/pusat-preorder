@@ -25,34 +25,27 @@ function togglePesananFilterVisibility() {
     : '<i class="ph-bold ph-eye"></i> Tampilkan';
 }
 
-function resolveWaveLabel(item) {
-  const product = allProductsMap[item.product_id];
-  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
-  return wave ? wave.label : item.wave_label;
-}
-
-// Deteksi (bukan mencegah) kejanggalan harga: bandingkan harga yang tersimpan
-// di pesanan dengan harga gelombang yang berlaku SEKARANG di data produk.
-// Kalau produk/gelombangnya sudah dihapus, tidak bisa dicek -> dianggap aman.
-// Catatan: harga gelombang yang berubah SETELAH pesanan dibuat juga akan
-// membuat pesanan lama tampak "janggal" secara wajar -- itu bukan berarti
-// ada kecurangan, tapi tetap layak dicek manual oleh Owner.
-function hasPriceMismatch(order) {
-  return (order.items || []).some((it) => {
-    const product = allProductsMap[it.product_id];
-    if (!product) return false;
-    const wave = (product.waves || []).find((w) => w.id === it.wave_id);
-    if (!wave) return false;
-    return Number(it.harga_satuan) !== Number(wave.harga);
-  });
-}
+// resolveWaveLabel() & hasOrderAnomaly() (deteksi harga/subtotal/total
+// janggal) sekarang di js/utils.js supaya tidak disalin-tempel 3x di tiap
+// halaman (Daftar Pesanan, Laporan, Dashboard).
 
 window.onAuthReady = function (profile) {
   currentProfile = profile;
   listenProductFilters();
 
-  document.getElementById("filter-dari").value = defaultDariTanggal();
-  document.getElementById("filter-sampai").value = new Date().toISOString().slice(0, 10);
+  // Kalau datang dari banner "Pesanan Terdeteksi Janggal" di Dashboard,
+  // langsung nyalakan filter anomali -- dan JANGAN batasi ke 30 hari
+  // terakhir (defaultnya), soalnya pesanan janggalnya bisa saja lebih lama
+  // dari itu dan jadi tidak kelihatan kalau dibatasi.
+  const params = new URLSearchParams(window.location.search);
+  const fromAnomaliLink = params.get("anomali") === "1";
+
+  document.getElementById("filter-dari").value = fromAnomaliLink ? "" : defaultDariTanggal();
+  document.getElementById("filter-sampai").value = fromAnomaliLink ? "" : new Date().toISOString().slice(0, 10);
+  if (fromAnomaliLink) {
+    document.getElementById("filter-harga-janggal").checked = true;
+    document.getElementById("anomali-chip").classList.add("active");
+  }
   loadOrders();
 
   if (canAccessAllBranches(profile)) {
@@ -227,11 +220,11 @@ function getFilteredOrders() {
       if (!hay.includes(search)) return false;
     }
     if (produkId && !(o.items || []).some((it) => it.product_id === produkId)) return false;
-    if (gelombangLabel && !(o.items || []).some((it) => resolveWaveLabel(it) === gelombangLabel)) return false;
+    if (gelombangLabel && !(o.items || []).some((it) => resolveWaveLabel(it, allProductsMap) === gelombangLabel)) return false;
     if (statusBayar && o.status_bayar !== statusBayar) return false;
     if (statusAmbil === "sudah" && !o.is_diambil) return false;
     if (statusAmbil === "belum" && o.is_diambil) return false;
-    if (document.getElementById("filter-harga-janggal").checked && !hasPriceMismatch(o)) return false;
+    if (document.getElementById("filter-harga-janggal").checked && !hasOrderAnomaly(o, allProductsMap)) return false;
     return true;
   });
 }
@@ -301,7 +294,7 @@ function renderOrders() {
 function renderRow(o, isOwner, showCabangCol) {
   const items = o.items || [];
   const checked = selectedIds.has(o.id) ? "checked" : "";
-  const janggal = hasPriceMismatch(o);
+  const janggal = hasOrderAnomaly(o, allProductsMap);
   const cabangNama = o.cabang_id && allCabangMap[o.cabang_id] ? allCabangMap[o.cabang_id].nama : "-";
 
   const produkCell = items
@@ -309,7 +302,7 @@ function renderRow(o, isOwner, showCabangCol) {
       (it) => `
       <div class="order-item-line">
         <div class="item-produk">${escapeHtml(it.product_name)}</div>
-        <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it))}</div>
+        <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it, allProductsMap))}</div>
       </div>`
     )
     .join("");
@@ -527,7 +520,7 @@ function renderDetailModal(order) {
     .map(
       (it) => `
     <tr>
-      <td>${escapeHtml(it.product_name)} <span style="color:var(--gray-400);">(${escapeHtml(resolveWaveLabel(it))})</span></td>
+      <td>${escapeHtml(it.product_name)} <span style="color:var(--gray-400);">(${escapeHtml(resolveWaveLabel(it, allProductsMap))})</span></td>
       <td style="text-align:center;">${it.jumlah}</td>
       <td style="text-align:right;">${formatRupiah(it.subtotal)}</td>
     </tr>`

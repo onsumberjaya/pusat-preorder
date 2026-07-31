@@ -168,3 +168,48 @@ function computeStatusBayar(total, paid) {
   if (paid >= total) return "lunas";
   return "cicilan";
 }
+
+// Cari nama gelombang (wave label) sebuah item pesanan dari data produk yang
+// berlaku SEKARANG. Kalau produk/gelombangnya sudah dihapus, pakai label
+// yang tersimpan di pesanan sebagai fallback.
+function resolveWaveLabel(item, productsMap) {
+  const product = productsMap[item.product_id];
+  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
+  return wave ? wave.label : item.wave_label;
+}
+
+// Deteksi (BUKAN mencegah -- itu keterbatasan Firestore Rules yang tidak
+// bisa menjumlahkan list dengan panjang dinamis, lihat catatan di
+// firestore.rules) kejanggalan pada sebuah pesanan, dari 3 sisi:
+//  1. Harga satuan item beda dari harga gelombang yang berlaku SEKARANG di
+//     data produk (bisa juga wajar kalau harga produk memang berubah SETELAH
+//     pesanan dibuat -- bukan otomatis berarti kecurangan, tapi layak dicek).
+//  2. Subtotal item tidak sama dengan harga_satuan x jumlah (mengindikasikan
+//     data dikirim langsung lewat API/console, bukan lewat form aplikasi).
+//  3. Total pesanan tidak sama dengan jumlah seluruh subtotal item.
+// Kalau produk/gelombangnya sudah dihapus, pengecekan #1 dilewati untuk item
+// itu (dianggap tidak bisa dicek, bukan otomatis aman/janggal).
+function hasOrderAnomaly(order, productsMap) {
+  const items = order.items || [];
+  let sumSubtotal = 0;
+  let anomaly = false;
+
+  items.forEach((it) => {
+    const hargaSatuan = Number(it.harga_satuan) || 0;
+    const jumlah = Number(it.jumlah) || 0;
+    const subtotal = Number(it.subtotal) || 0;
+    sumSubtotal += subtotal;
+
+    if (subtotal !== hargaSatuan * jumlah) anomaly = true;
+
+    const product = productsMap[it.product_id];
+    if (product) {
+      const wave = (product.waves || []).find((w) => w.id === it.wave_id);
+      if (wave && hargaSatuan !== Number(wave.harga)) anomaly = true;
+    }
+  });
+
+  if (Number(order.total) !== sumSubtotal) anomaly = true;
+
+  return anomaly;
+}

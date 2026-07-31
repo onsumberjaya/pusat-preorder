@@ -5,23 +5,8 @@ let lapProductsMap = {};
 let lapCabangMap = {};
 let lapShowCabang = false;
 
-function resolveWaveLabel(item) {
-  const product = lapProductsMap[item.product_id];
-  const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
-  return wave ? wave.label : item.wave_label;
-}
-
-// Sama seperti di Daftar Pesanan: deteksi (bukan cegah) kejanggalan harga
-// dengan membandingkan ke harga gelombang yang berlaku sekarang.
-function hasPriceMismatch(order) {
-  return (order.items || []).some((it) => {
-    const product = lapProductsMap[it.product_id];
-    if (!product) return false;
-    const wave = (product.waves || []).find((w) => w.id === it.wave_id);
-    if (!wave) return false;
-    return Number(it.harga_satuan) !== Number(wave.harga);
-  });
-}
+// resolveWaveLabel() & hasOrderAnomaly() sekarang di js/utils.js (dipakai
+// bersama oleh Daftar Pesanan, Laporan, Dashboard).
 
 let lapProfile = null;
 
@@ -227,7 +212,7 @@ function renderReport() {
     (sum, o) => sum + (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
     0
   );
-  const jumlahJanggal = lapFiltered.filter((o) => hasPriceMismatch(o)).length;
+  const jumlahJanggal = lapFiltered.filter((o) => hasOrderAnomaly(o, lapProductsMap)).length;
 
   document.getElementById("laporan-summary").innerHTML = `
     <div class="grid grid-4">
@@ -245,7 +230,7 @@ function renderReport() {
   const rows = lapFiltered
     .map((o) => {
       const items = o.items || [];
-      const janggal = hasPriceMismatch(o);
+      const janggal = hasOrderAnomaly(o, lapProductsMap);
       const belumLunas = o.status_bayar !== "lunas";
 
       const produkCell = items
@@ -253,7 +238,7 @@ function renderReport() {
           (it) => `
         <div class="order-item-line">
           <div class="item-produk">${escapeHtml(it.product_name)} <span style="color:var(--gray-400); font-weight:500;">x${it.jumlah}</span></div>
-          <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it))}</div>
+          <div class="item-gelombang">${escapeHtml(resolveWaveLabel(it, lapProductsMap))}</div>
         </div>`
         )
         .join("");
@@ -329,7 +314,7 @@ function exportExcel() {
         "No HP": o.no_hp || "",
         Alamat: o.alamat || "",
         Produk: it ? it.product_name : "-",
-        Gelombang: it ? resolveWaveLabel(it) : "-",
+        Gelombang: it ? resolveWaveLabel(it, lapProductsMap) : "-",
         Qty: it ? it.jumlah : "",
         "Harga Satuan": it ? it.harga_satuan : "",
         Subtotal: it ? it.subtotal : "",
@@ -338,7 +323,7 @@ function exportExcel() {
         Kekurangan: o.total - (o.paid_amount || 0),
         "Status Bayar": STATUS_BAYAR_LABEL[o.status_bayar],
         Pengambilan: o.is_diambil ? "Sudah" : "Belum",
-        "Cek Harga": hasPriceMismatch(o) ? "JANGGAL" : "OK",
+        "Cek Harga": hasOrderAnomaly(o, lapProductsMap) ? "JANGGAL" : "OK",
         Catatan: o.catatan || "",
       });
       data.push(row);
@@ -368,7 +353,7 @@ function exportPdf() {
     row.push(
       `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
       (o.items || []).map((it) => `${it.product_name} x${it.jumlah}`).join("\n"),
-      (o.items || []).map((it) => resolveWaveLabel(it)).join("\n"),
+      (o.items || []).map((it) => resolveWaveLabel(it, lapProductsMap)).join("\n"),
       (o.items || []).reduce((s, it) => s + (Number(it.jumlah) || 0), 0),
       formatRupiah(o.total),
       formatRupiah(o.paid_amount || 0),
