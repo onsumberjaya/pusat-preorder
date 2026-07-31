@@ -391,7 +391,14 @@ function renderRow(o, idx, isOwner, showCabangCol) {
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
-      ${showCabangCol ? `<td>${escapeHtml(cabangNama)}</td>` : ""}
+      ${
+        showCabangCol
+          ? `<td>
+        <div style="font-weight:600;">${escapeHtml(cabangNama)}</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.alamat || "-")}</div>
+      </td>`
+          : ""
+      }
       <td>
         <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
         <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
