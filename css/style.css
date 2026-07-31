@@ -314,6 +314,7 @@ h1.page-title { font-size: 23px; margin: 0 0 4px; color: var(--gray-900); font-w
 }
 
 .grid { display: grid; gap: 16px; }
+.grid > * { min-width: 0; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
