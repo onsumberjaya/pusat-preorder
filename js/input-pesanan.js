@@ -545,39 +545,59 @@ async function handleSubmit(e) {
       return;
     }
 
-    const ids = await getNextOrderIdentifiers();
+    // Digabung jadi SATU transaksi (penomoran nota + simpan pesanan +
+    // pembayaran awal) -- sebelumnya getNextOrderIdentifiers() jalan sebagai
+    // transaksi terpisah SEBELUM newOrderRef.set(), jadi kalau penyimpanan
+    // pesanan gagal di tengah jalan (mis. koneksi putus), nomor nota yang
+    // sudah terlanjur diambil jadi "terbuang" (tidak dipakai ulang, counter
+    // sudah kadung naik). Dengan satu transaksi, counter cuma naik kalau
+    // pesanannya benar-benar berhasil tersimpan.
+    const year = new Date().getFullYear();
+    const globalCounterRef = db.collection("counters").doc("orders");
+    const yearCounterRef = db.collection("counters").doc("nota-" + year);
     const newOrderRef = db.collection("orders").doc();
-    await newOrderRef.set({
-      cabang_id: cabangIdBaru,
-      order_no: ids.order_no,
-      nota_tahun: ids.nota_tahun,
-      nota_seq: ids.nota_seq,
-      tanggal,
-      nama_pembeli: namaPembeli,
-      alamat,
-      no_hp: noHp,
-      catatan,
-      items: itemsData,
-      total,
-      paid_amount: paidAmount,
-      status_bayar: computeStatusBayar(total, paidAmount),
-      is_diambil: false,
-      tanggal_ambil: null,
-      created_by: profile.uid,
-      created_by_name: profile.full_name,
-      created_at: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+    const paymentRef = paidAmount > 0 ? newOrderRef.collection("payments").doc() : null;
 
-    if (paidAmount > 0) {
-      await newOrderRef.collection("payments").add({
-        tanggal: firebase.firestore.FieldValue.serverTimestamp(),
-        jumlah: paidAmount,
-        catatan: "Pembayaran awal saat pesan",
+    await db.runTransaction(async (tx) => {
+      const [globalDoc, yearDoc] = await Promise.all([tx.get(globalCounterRef), tx.get(yearCounterRef)]);
+      const orderNo = (globalDoc.exists ? globalDoc.data().seq || 0 : 0) + 1;
+      const notaSeq = (yearDoc.exists ? yearDoc.data().seq || 0 : 0) + 1;
+
+      tx.set(globalCounterRef, { seq: orderNo }, { merge: true });
+      tx.set(yearCounterRef, { seq: notaSeq }, { merge: true });
+
+      tx.set(newOrderRef, {
+        cabang_id: cabangIdBaru,
+        order_no: orderNo,
+        nota_tahun: year,
+        nota_seq: notaSeq,
+        tanggal,
+        nama_pembeli: namaPembeli,
+        alamat,
+        no_hp: noHp,
+        catatan,
+        items: itemsData,
+        total,
+        paid_amount: paidAmount,
+        status_bayar: computeStatusBayar(total, paidAmount),
+        is_diambil: false,
+        tanggal_ambil: null,
         created_by: profile.uid,
         created_by_name: profile.full_name,
         created_at: firebase.firestore.FieldValue.serverTimestamp(),
       });
-    }
+
+      if (paymentRef) {
+        tx.set(paymentRef, {
+          tanggal: firebase.firestore.FieldValue.serverTimestamp(),
+          jumlah: paidAmount,
+          catatan: "Pembayaran awal saat pesan",
+          created_by: profile.uid,
+          created_by_name: profile.full_name,
+          created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
 
     showToast("Pesanan berhasil disimpan.", "success");
     document.getElementById("form-container").style.display = "none";

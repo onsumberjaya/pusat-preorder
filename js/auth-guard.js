@@ -42,8 +42,8 @@ auth.onAuthStateChanged(async (user) => {
 // tab dalam browser yang sama di komputer yang sama -- jadi buka beberapa
 // tab di 1 komputer tetap dianggap 1 sesi, tidak saling menendang.
 let sessionKickHandled = false;
-function watchSingleSession(uid) {
-  const localSessionId = localStorage.getItem("device_session_id");
+async function watchSingleSession(uid) {
+  let localSessionId = localStorage.getItem("device_session_id");
 
   if (!localSessionId) {
     // Sesi ini belum tercatat lokal -- kemungkinan besar login dari SEBELUM
@@ -51,10 +51,20 @@ function watchSingleSession(uid) {
     // langsung tendang paksa (bisa mengganggu semua orang begitu fitur ini
     // baru diaktifkan), anggap saja perangkat ini sah dan daftarkan sebagai
     // sesi aktif sekarang.
-    const newId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem("device_session_id", newId);
-    db.collection("users").doc(uid).update({ active_session_id: newId }).catch(() => {});
-    return;
+    localSessionId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem("device_session_id", localSessionId);
+    try {
+      // WAJIB ditunggu (await) sebelum pasang listener di bawah -- kalau
+      // tidak, listener bisa sempat menerima snapshot LAMA (sebelum tulisan
+      // ini benar-benar sampai ke server) yang active_session_id-nya masih
+      // milik sesi sebelumnya, lalu salah kira itu login dari perangkat lain
+      // dan menendang diri sendiri padahal baru saja login.
+      await db.collection("users").doc(uid).update({ active_session_id: localSessionId });
+    } catch (e) {
+      // Gagal simpan (mis. koneksi putus) -- tetap lanjut pasang listener di
+      // bawah supaya begitu field ini akhirnya berubah (dari percobaan lain/
+      // perangkat lain), pemantauan tetap berjalan seperti biasa.
+    }
   }
 
   db.collection("users")

@@ -100,27 +100,13 @@ function friendlyFirebaseError(err) {
   return map[code] || (err && err.message) || "Terjadi kesalahan, silakan coba lagi.";
 }
 
-// Menghasilkan nomor pesanan (global, untuk urutan data) SEKALIGUS nomor urut
-// nota per tahun (untuk kode PO-YYNNNN, reset ke 1 tiap tahun baru), sekaligus
-// dalam satu transaksi Firestore supaya konsisten walau 2 orang input bersamaan.
-async function getNextOrderIdentifiers() {
-  const year = new Date().getFullYear();
-  const globalRef = db.collection("counters").doc("orders");
-  const yearRef = db.collection("counters").doc("nota-" + year);
-  return db.runTransaction(async (tx) => {
-    const [globalDoc, yearDoc] = await Promise.all([tx.get(globalRef), tx.get(yearRef)]);
-    const nextGlobal = (globalDoc.exists ? globalDoc.data().seq || 0 : 0) + 1;
-    const nextYear = (yearDoc.exists ? yearDoc.data().seq || 0 : 0) + 1;
-    tx.set(globalRef, { seq: nextGlobal }, { merge: true });
-    tx.set(yearRef, { seq: nextYear }, { merge: true });
-    return { order_no: nextGlobal, nota_tahun: year, nota_seq: nextYear };
-  });
-}
-
-// Sama seperti bagian nota_seq di getNextOrderIdentifiers() di atas, tapi
-// BERDIRI SENDIRI (tidak ikut menaikkan counter order_no global) -- dipakai
-// khusus untuk menomori ulang pesanan LAMA yang belum punya nota_seq, supaya
-// tidak memboroskan nomor urut global yang sebenarnya tidak perlu berubah.
+// Dipakai khusus untuk menomori ulang pesanan LAMA yang belum punya
+// nota_seq (lihat fixDuplicateNotaNumbers() di js/laporan.js) -- BERDIRI
+// SENDIRI, tidak ikut menaikkan counter order_no global, supaya tidak
+// memboroskan nomor urut global yang sebenarnya tidak perlu berubah.
+// (Penomoran untuk pesanan BARU dilakukan langsung di dalam transaksi
+// penyimpanan pesanan di js/input-pesanan.js, bukan lewat fungsi terpisah,
+// supaya penomoran & penyimpanan pesanan atomik dalam 1 transaksi yang sama.)
 async function getNextNotaSeq(year) {
   const yearRef = db.collection("counters").doc("nota-" + year);
   return db.runTransaction(async (tx) => {
