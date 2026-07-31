@@ -310,7 +310,7 @@ h1.page-title { font-size: 23px; margin: 0 0 4px; color: var(--gray-900); font-w
    rasio otomatis) supaya bisa dibuat lebih tinggi khusus di layar HP. */
 .chart-box { position: relative; height: 240px; }
 @media (max-width: 640px) {
-  .chart-box-waktu { height: 320px; }
+  .chart-box-waktu { height: 290px; }
 }
 
 .grid { display: grid; gap: 16px; }
