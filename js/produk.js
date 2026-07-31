@@ -113,28 +113,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const label = document.getElementById("wave-label").value.trim();
     const harga = Number(document.getElementById("wave-harga").value);
 
-    const product = allProducts.find((p) => p.id === productId);
-    if (!product) return;
-    let waves = [...(product.waves || [])];
-
-    if (waveId) {
-      waves = waves.map((w) => (w.id === waveId ? { ...w, label, harga } : w));
-    } else {
-      const newWave = {
-        id: "w_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        label,
-        harga,
-        aktif: waves.length === 0, // gelombang pertama otomatis aktif
-      };
-      waves.push(newWave);
-    }
-
     try {
-      await db.collection("products").doc(productId).update({ waves });
+      // Pakai transaksi: baca array "waves" TERBARU dari server tepat saat
+      // menyimpan (bukan dari allProducts yang sudah dibuka sejak halaman ini
+      // dibuka/snapshot terakhir). Ini mencegah 2 admin yang mengedit gelombang
+      // produk yang sama nyaris bersamaan saling menimpa perubahan satu sama
+      // lain (race condition / lost update) -- lihat juga setActiveWave() dan
+      // deleteWave() di bawah yang punya masalah & solusi yang sama.
+      await db.runTransaction(async (tx) => {
+        const ref = db.collection("products").doc(productId);
+        const freshDoc = await tx.get(ref);
+        if (!freshDoc.exists) throw new Error("Produk tidak ditemukan (mungkin baru saja dihapus).");
+        let waves = [...(freshDoc.data().waves || [])];
+
+        if (waveId) {
+          if (!waves.some((w) => w.id === waveId)) {
+            throw new Error("Gelombang ini sudah tidak ada (mungkin baru saja dihapus rekan kerja). Muat ulang halaman.");
+          }
+          waves = waves.map((w) => (w.id === waveId ? { ...w, label, harga } : w));
+        } else {
+          const newWave = {
+            id: "w_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            label,
+            harga,
+            aktif: waves.length === 0, // gelombang pertama otomatis aktif
+          };
+          waves.push(newWave);
+        }
+
+        tx.update(ref, { waves });
+      });
       showToast("Gelombang tersimpan.", "success");
       closeWaveModal();
     } catch (err) {
-      showToast(friendlyFirebaseError(err), "error");
+      showToast(err.message || friendlyFirebaseError(err), "error");
     }
   });
 });
@@ -162,27 +174,45 @@ function closeWaveModal() {
   document.getElementById("wave-modal").style.display = "none";
 }
 
+// Sama seperti submit form gelombang di atas: pakai transaksi & baca ulang
+// "waves" TERBARU dari server, bukan dari allProducts di memori -- supaya
+// klik "Jadikan Aktif" tidak menimpa perubahan rekan kerja lain yang baru
+// saja mengedit/menghapus gelombang produk yang sama (race condition / lost
+// update pada array "waves").
 async function setActiveWave(productId, waveId) {
-  const product = allProducts.find((p) => p.id === productId);
-  if (!product) return;
-  const waves = (product.waves || []).map((w) => ({ ...w, aktif: w.id === waveId }));
   try {
-    await db.collection("products").doc(productId).update({ waves });
+    await db.runTransaction(async (tx) => {
+      const ref = db.collection("products").doc(productId);
+      const freshDoc = await tx.get(ref);
+      if (!freshDoc.exists) throw new Error("Produk tidak ditemukan (mungkin baru saja dihapus).");
+      const freshWaves = freshDoc.data().waves || [];
+      if (!freshWaves.some((w) => w.id === waveId)) {
+        throw new Error("Gelombang ini sudah tidak ada (mungkin baru saja dihapus rekan kerja). Muat ulang halaman.");
+      }
+      const waves = freshWaves.map((w) => ({ ...w, aktif: w.id === waveId }));
+      tx.update(ref, { waves });
+    });
     showToast("Gelombang aktif diperbarui.", "success");
   } catch (err) {
-    showToast(friendlyFirebaseError(err), "error");
+    showToast(err.message || friendlyFirebaseError(err), "error");
   }
 }
 
+// Sama seperti setActiveWave() di atas -- baca ulang "waves" TERBARU dari
+// server di dalam transaksi supaya penghapusan tidak menimpa perubahan
+// rekan kerja lain yang bersamaan mengedit gelombang produk yang sama.
 async function deleteWave(productId, waveId) {
   if (!confirm("Hapus gelombang harga ini?")) return;
-  const product = allProducts.find((p) => p.id === productId);
-  if (!product) return;
-  const waves = (product.waves || []).filter((w) => w.id !== waveId);
   try {
-    await db.collection("products").doc(productId).update({ waves });
+    await db.runTransaction(async (tx) => {
+      const ref = db.collection("products").doc(productId);
+      const freshDoc = await tx.get(ref);
+      if (!freshDoc.exists) throw new Error("Produk tidak ditemukan (mungkin baru saja dihapus).");
+      const waves = (freshDoc.data().waves || []).filter((w) => w.id !== waveId);
+      tx.update(ref, { waves });
+    });
     showToast("Gelombang dihapus.", "success");
   } catch (err) {
-    showToast(friendlyFirebaseError(err), "error");
+    showToast(err.message || friendlyFirebaseError(err), "error");
   }
 }

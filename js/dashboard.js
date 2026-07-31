@@ -29,7 +29,14 @@ function toggleDashFilterVisibility() {
     : '<i class="ph-bold ph-funnel"></i> Filter';
 }
 
-function resolveWaveLabel(item) {
+// Sengaja dinamai beda dari resolveWaveLabel(item, productsMap) di js/utils.js
+// (dipakai bersama oleh Daftar Pesanan/Laporan) -- versi khusus dashboard ini
+// tanda tangannya beda (cuma 1 parameter, ambil dashProducts dari closure).
+// Kalau namanya disamakan, script ini (dimuat setelah utils.js di
+// dashboard.html) akan diam-diam MENIMPA fungsi global utils.js karena semua
+// script jalan di scope global yang sama -- jebakan tersembunyi kalau nanti
+// ada kode lain di halaman ini yang memanggil resolveWaveLabel(item, map).
+function resolveWaveLabelDash(item) {
   const product = dashProducts.find((p) => p.id === item.product_id);
   const wave = product ? (product.waves || []).find((w) => w.id === item.wave_id) : null;
   return wave ? wave.label : item.wave_label;
@@ -79,11 +86,6 @@ function updateCabangFilterOptionsDash(profile) {
       select.appendChild(opt);
     });
   if (Array.from(select.options).some((o) => o.value === currentValue)) select.value = currentValue;
-}
-
-function cabangNamaDash(cabangId) {
-  const c = allCabangDash.find((x) => x.id === cabangId);
-  return c ? c.nama : "Belum Ada Cabang";
 }
 
 let dashProfile = null;
@@ -177,7 +179,7 @@ function filteredDashOrders() {
     const tgl = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
     if (from && tgl < from) return false;
     if (to && tgl > to) return false;
-    if (gelombang && !(o.items || []).some((it) => resolveWaveLabel(it) === gelombang)) return false;
+    if (gelombang && !(o.items || []).some((it) => resolveWaveLabelDash(it) === gelombang)) return false;
     if (cabangFilter && o.cabang_id !== cabangFilter) return false;
     return true;
   });
