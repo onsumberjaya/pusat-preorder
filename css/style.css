@@ -306,6 +306,13 @@ h1.page-title { font-size: 23px; margin: 0 0 4px; color: var(--gray-900); font-w
 .page-header-row .page-title, .page-header-row .page-subtitle { margin-bottom: 0; }
 .page-header-row .page-subtitle { margin-top: 4px; }
 
+/* Kotak grafik "Pesanan Masuk" di Dashboard -- tinggi diatur manual (bukan
+   rasio otomatis) supaya bisa dibuat lebih tinggi khusus di layar HP. */
+.chart-box { position: relative; height: 240px; }
+@media (max-width: 640px) {
+  .chart-box-waktu { height: 320px; }
+}
+
 .grid { display: grid; gap: 16px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
