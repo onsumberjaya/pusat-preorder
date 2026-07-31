@@ -505,8 +505,8 @@ table tbody tr:hover { background: var(--gray-50); }
   .grid-5 .stat-card .stat-label { font-size: 9.5px; margin-bottom: 2px; }
   .grid-5 .stat-card .stat-value { font-size: 15px; }
 
-  /* Grafik Pesanan Masuk ditambah tinggi +285px khusus di HP. */
-  .chart-waktu-box { height: 505px; }
+  /* Grafik Pesanan Masuk di HP: awalnya 505px, diturunkan ~28% jadi 365px. */
+  .chart-waktu-box { height: 365px; }
 
   /* Judul halaman dikecilkan sedikit & tombol Filter/Muat Ulang dirapatkan
      supaya tetap muat satu baris bersama judul (Dashboard, Daftar Pesanan). */
