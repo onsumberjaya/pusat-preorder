@@ -342,45 +342,10 @@ function renderOrders() {
         </table>
       </div>
     </div>
-    ${renderPaginationControls(list.length, totalPages)}
+    ${renderPaginationControls(currentPage, pageSize, list.length, "goToPage")}
   `;
   syncSelectAllCheckbox();
   updateBulkToolbar();
-}
-
-function renderPaginationControls(totalItems, totalPages) {
-  if (totalPages <= 1) {
-    return `<p style="text-align:center; font-size:12.5px; color:var(--gray-400); margin-top:10px;">${totalItems} pesanan</p>`;
-  }
-
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
-
-  // Nomor halaman ditampilkan berjendela (maks 5 angka) di sekitar halaman
-  // aktif, supaya tidak menumpuk kalau halamannya sangat banyak.
-  let start = Math.max(1, currentPage - 2);
-  let end = Math.min(totalPages, start + 4);
-  start = Math.max(1, end - 4);
-  const pageNumbers = [];
-  for (let p = start; p <= end; p++) pageNumbers.push(p);
-
-  return `
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px;">
-      <span style="font-size:12.5px; color:var(--gray-500);">Menampilkan ${startItem}–${endItem} dari ${totalItems} pesanan</span>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <button class="btn-secondary btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}><i class="ph-bold ph-caret-left"></i></button>
-        ${start > 1 ? `<button class="btn-secondary btn-sm" onclick="goToPage(1)">1</button>${start > 2 ? '<span style="color:var(--gray-400);">…</span>' : ""}` : ""}
-        ${pageNumbers
-          .map(
-            (p) =>
-              `<button class="btn-sm" style="min-width:32px; ${p === currentPage ? "background:var(--brand-600); color:#fff; border-color:var(--brand-600);" : "background:#fff; border:1px solid var(--gray-200); color:var(--gray-700);"}" onclick="goToPage(${p})">${p}</button>`
-          )
-          .join("")}
-        ${end < totalPages ? `${end < totalPages - 1 ? '<span style="color:var(--gray-400);">…</span>' : ""}<button class="btn-secondary btn-sm" onclick="goToPage(${totalPages})">${totalPages}</button>` : ""}
-        <button class="btn-secondary btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}><i class="ph-bold ph-caret-right"></i></button>
-      </div>
-    </div>
-  `;
 }
 
 function goToPage(page) {

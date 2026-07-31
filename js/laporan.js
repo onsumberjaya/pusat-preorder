@@ -4,6 +4,8 @@ let lapFiltered = [];
 let lapProductsMap = {};
 let lapCabangMap = {};
 let lapShowCabang = false;
+let lapPage = 1;
+let lapPageSize = 20;
 
 // resolveWaveLabel() & hasOrderAnomaly() sekarang di js/utils.js (dipakai
 // bersama oleh Daftar Pesanan, Laporan, Dashboard).
@@ -80,6 +82,11 @@ window.onAuthReady = async function (profile) {
     });
 
     await applyReportFilter();
+    document.getElementById("lap-pagesize").addEventListener("change", (e) => {
+      lapPageSize = Number(e.target.value) || 20;
+      lapPage = 1;
+      renderReport();
+    });
     // Catatan: pengecekan nomor nota bentrok TIDAK dijalankan otomatis di
     // sini lagi -- itu butuh baca seluruh riwayat pesanan (bukan cuma
     // rentang tanggal di atas), jadi sekarang jadi tombol manual terpisah
@@ -177,6 +184,7 @@ async function fixDuplicateNotaNumbers() {
 }
 
 async function applyReportFilter() {
+  lapPage = 1;
   const container = document.getElementById("laporan-table");
   const prevHtml = container ? container.innerHTML : "";
   try {
@@ -227,8 +235,14 @@ function renderReport() {
         : ""
     }`;
 
-  const rows = lapFiltered
-    .map((o) => {
+  const totalPages = Math.max(1, Math.ceil(lapFiltered.length / lapPageSize));
+  if (lapPage > totalPages) lapPage = totalPages;
+  if (lapPage < 1) lapPage = 1;
+  const startIdx = (lapPage - 1) * lapPageSize;
+  const pageList = lapFiltered.slice(startIdx, startIdx + lapPageSize);
+
+  const rows = pageList
+    .map((o, idx) => {
       const items = o.items || [];
       const janggal = hasOrderAnomaly(o, lapProductsMap);
       const belumLunas = o.status_bayar !== "lunas";
@@ -248,6 +262,7 @@ function renderReport() {
 
       return `
     <tr>
+      <td style="text-align:center; color:var(--gray-400); font-size:12.5px;">${startIdx + idx + 1}</td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
@@ -276,6 +291,7 @@ function renderReport() {
         <table>
           <thead>
             <tr>
+              <th>No</th>
               <th>Nota / Tanggal</th>
               ${lapShowCabang ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
@@ -289,10 +305,17 @@ function renderReport() {
               <th>Cek Harga</th>
             </tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="${lapShowCabang ? 11 : 10}" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>`}</tbody>
+          <tbody>${rows || `<tr><td colspan="${lapShowCabang ? 12 : 11}" style="text-align:center; color:var(--gray-400);">Tidak ada data</td></tr>`}</tbody>
         </table>
       </div>
-    </div>`;
+    </div>
+    ${renderPaginationControls(lapPage, lapPageSize, lapFiltered.length, "goToLapPage")}`;
+}
+
+function goToLapPage(page) {
+  lapPage = page;
+  renderReport();
+  document.getElementById("laporan-table").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function exportExcel() {
@@ -347,8 +370,8 @@ function exportPdf() {
   doc.setFontSize(10);
   doc.text(`Laporan Pesanan - dicetak ${formatTanggal(new Date())}`, 14, 21);
 
-  const body = lapFiltered.map((o) => {
-    const row = [`${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`];
+  const body = lapFiltered.map((o, idx) => {
+    const row = [idx + 1, `${formatOrderNo(o)}\n${formatTanggal(o.tanggal)}`];
     if (lapShowCabang) row.push(cabangNamaLap(o.cabang_id));
     row.push(
       `${o.nama_pembeli}\n${o.no_hp || "-"}${o.alamat ? "\n" + o.alamat : ""}`,
@@ -364,7 +387,7 @@ function exportPdf() {
     return row;
   });
 
-  const head = ["Nota / Tanggal"];
+  const head = ["No", "Nota / Tanggal"];
   if (lapShowCabang) head.push("Cabang");
   head.push("Pemesan", "Produk", "Gelombang", "Qty", "Total", "Dibayar", "Kekurangan", "Status Bayar", "Pengambilan");
 

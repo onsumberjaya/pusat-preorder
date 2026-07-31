@@ -49,10 +49,19 @@
           <label>Cabang</label>
           <select id="lap-cabang"><option value="">Semua Cabang</option></select>
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:6px;">
           <button class="btn-secondary" onclick="applyReportFilter()">Terapkan Filter</button>
           <button class="btn-primary" onclick="exportExcel()">⬇️ Export Excel</button>
           <button class="btn-primary" onclick="exportPdf()">⬇️ Export PDF</button>
+          <label style="font-size:12.5px; color:var(--gray-500); display:flex; align-items:center; gap:6px; margin-left:auto;">
+            Tampilkan
+            <select id="lap-pagesize" style="min-width:auto;">
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            / halaman
+          </label>
         </div>
       </div>
 
