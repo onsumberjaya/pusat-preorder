@@ -7,6 +7,16 @@ let chartAlamat = null;
 let chartWaktu = null;
 let dashGranularitas = "harian";
 
+// Chart.js kadang tidak langsung menyesuaikan lebar canvas saat browser
+// di-zoom (beda dengan kotak/box biasa yang otomatis mengikuti lebar layar
+// lewat CSS). Panggil resize() manual tiap ada perubahan ukuran window
+// (termasuk saat zoom in/out) supaya ketiga grafik ikut menyesuaikan.
+window.addEventListener("resize", () => {
+  if (chartWaktu) chartWaktu.resize();
+  if (chartProduk) chartProduk.resize();
+  if (chartAlamat) chartAlamat.resize();
+});
+
 // Tombol "Filter" di pojok kanan atas -- kotak filter disembunyikan
 // secara default dan baru muncul saat tombol ini diklik.
 function toggleDashFilterVisibility() {
