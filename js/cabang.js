@@ -128,8 +128,18 @@ async function toggleCabangActive(id, makeActive) {
 let legacyOrdersCache = [];
 let legacyUsersCache = [];
 
+// Baca-ulang SELURUH koleksi "orders" & "users" cuma untuk mengecek data lama
+// itu mahal (jumlah baca = jumlah dokumen) dan tidak perlu diulang tiap kali
+// halaman ini dibuka -- begitu sudah dipastikan tidak ada data lama tersisa,
+// simpan statusnya di config/migrasi_status supaya kunjungan berikutnya
+// langsung skip pengecekan ini (cukup 1 baca, bukan baca seluruh koleksi).
 async function checkMigrasiNeeded() {
   try {
+    const statusDoc = await db.collection("config").doc("migrasi_status").get();
+    if (statusDoc.exists && statusDoc.data().selesai === true) {
+      return;
+    }
+
     const [orderSnap, userSnap] = await Promise.all([
       db.collection("orders").get(),
       db.collection("users").get(),
@@ -137,7 +147,15 @@ async function checkMigrasiNeeded() {
     legacyOrdersCache = orderSnap.docs.filter((d) => !d.data().cabang_id);
     legacyUsersCache = userSnap.docs.filter((d) => d.data().role === "karyawan" && !d.data().cabang_id);
 
-    if (legacyOrdersCache.length === 0 && legacyUsersCache.length === 0) return;
+    if (legacyOrdersCache.length === 0 && legacyUsersCache.length === 0) {
+      // Tidak ada (atau sudah tidak ada) data lama -- tandai selesai supaya
+      // halaman ini tidak perlu baca-ulang seluruh orders/users lagi ke depannya.
+      await db.collection("config").doc("migrasi_status").set(
+        { selesai: true, selesai_pada: firebase.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+      return;
+    }
 
     const card = document.getElementById("migrasi-card");
     const parts = [];
@@ -194,6 +212,10 @@ async function jalankanMigrasi() {
     document.getElementById("migrasi-card").style.display = "none";
     legacyOrdersCache = [];
     legacyUsersCache = [];
+    await db.collection("config").doc("migrasi_status").set(
+      { selesai: true, selesai_pada: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
   } catch (err) {
     showToast(friendlyFirebaseError(err), "error");
   } finally {

@@ -23,25 +23,49 @@ function hasPriceMismatch(order) {
   });
 }
 
+let lapProfile = null;
+
+function defaultLapDari() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+
+// Ambil pesanan sesuai rentang tanggal yang dipilih (default: 30 hari
+// terakhir) langsung lewat query Firestore -- bukan baca SELURUH koleksi
+// "orders" lalu disaring di browser seperti sebelumnya. Kalau butuh data
+// yang lebih lama, tinggal ubah tanggalnya lalu klik "Terapkan Filter".
+async function loadLaporanOrders() {
+  const profile = lapProfile;
+  if (!profile) return;
+  const dari = document.getElementById("lap-dari").value;
+  const sampai = document.getElementById("lap-sampai").value;
+
+  let ordersQuery = db.collection("orders");
+  if (!lapShowCabang && profile.cabang_id) {
+    ordersQuery = ordersQuery.where("cabang_id", "==", profile.cabang_id);
+  }
+  if (dari) ordersQuery = ordersQuery.where("tanggal", ">=", new Date(dari + "T00:00:00"));
+  if (sampai) ordersQuery = ordersQuery.where("tanggal", "<=", new Date(sampai + "T23:59:59"));
+  ordersQuery = ordersQuery.orderBy("tanggal", "desc");
+
+  const orderSnap = await ordersQuery.get();
+  lapOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 window.onAuthReady = async function (profile) {
   try {
+    lapProfile = profile;
     lapShowCabang = canAccessAllBranches(profile);
 
-    // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...) --
-    // kalau tidak, Firestore rules menolak seluruh query karena berpotensi
-    // mengembalikan pesanan cabang lain (lihat firestore.rules).
-    let ordersQuery = db.collection("orders").orderBy("order_no", "desc");
-    if (!lapShowCabang && profile.cabang_id) {
-      ordersQuery = db.collection("orders").where("cabang_id", "==", profile.cabang_id).orderBy("order_no", "desc");
-    }
+    document.getElementById("lap-dari").value = defaultLapDari();
+    document.getElementById("lap-sampai").value = new Date().toISOString().slice(0, 10);
 
-    const [orderSnap, prodSnap, cabangSnap, tokoDoc] = await Promise.all([
-      ordersQuery.get(),
+    const [prodSnap, cabangSnap, tokoDoc] = await Promise.all([
       db.collection("products").orderBy("nama").get(),
       db.collection("cabang").orderBy("nama").get(),
       db.collection("config").doc("toko").get(),
     ]);
-    lapOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (tokoDoc.exists) lapToko = tokoDoc.data();
 
     cabangSnap.docs.forEach((d) => {
@@ -70,8 +94,12 @@ window.onAuthReady = async function (profile) {
       select.appendChild(opt);
     });
 
-    applyReportFilter();
-    checkDuplicateNotaNumbers();
+    await applyReportFilter();
+    // Catatan: pengecekan nomor nota bentrok TIDAK dijalankan otomatis di
+    // sini lagi -- itu butuh baca seluruh riwayat pesanan (bukan cuma
+    // rentang tanggal di atas), jadi sekarang jadi tombol manual terpisah
+    // ("Cek Nomor Nota Bentrok (Riwayat Penuh)") supaya tidak membaca ulang
+    // seluruh koleksi orders tiap kali halaman ini dibuka.
   } catch (err) {
     document.getElementById("laporan-table").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
   }
@@ -86,13 +114,37 @@ function cabangNamaLap(cabangId) {
 // KEBETULAN sama dengan nota_seq pesanan baru (sama-sama mulai dari 1).
 // Fungsi ini cuma mendeteksi & menampilkan tombol perbaikan -- tidak
 // mengubah apa pun sampai Owner klik tombolnya.
-function checkDuplicateNotaNumbers() {
-  const legacyCount = lapOrders.filter((o) => !o.nota_seq || !o.nota_tahun).length;
-  if (legacyCount === 0) return;
-  const card = document.getElementById("fix-nota-card");
-  document.getElementById("fix-nota-desc").textContent =
-    `Ditemukan ${legacyCount} pesanan lama yang masih pakai cara penomoran nota yang lama, sehingga nomornya bisa sama dengan pesanan baru. Klik tombol di bawah untuk menomori ulang pesanan-pesanan lama itu (sekali jalan, aman diulang kapan saja).`;
-  card.style.display = "block";
+let legacyNotaCache = [];
+
+// Ini SENGAJA baca seluruh riwayat pesanan (bukan cuma rentang tanggal yang
+// sedang difilter di laporan) karena tujuannya memang mencari pesanan lama
+// yang belum punya nota_seq -- kapan pun itu terjadi. Karena itu dibuatkan
+// tombol manual terpisah, bukan dijalankan otomatis tiap halaman dibuka.
+async function checkDuplicateNotaNumbers() {
+  const profile = lapProfile;
+  if (!profile) return;
+  showToast("Memeriksa seluruh riwayat pesanan...", "success");
+  try {
+    let q = db.collection("orders");
+    if (!lapShowCabang && profile.cabang_id) {
+      q = q.where("cabang_id", "==", profile.cabang_id);
+    }
+    const snap = await q.get();
+    legacyNotaCache = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((o) => !o.nota_seq || !o.nota_tahun);
+
+    if (legacyNotaCache.length === 0) {
+      showToast("Tidak ditemukan pesanan lama dengan nomor nota bentrok.", "success");
+      return;
+    }
+    const card = document.getElementById("fix-nota-card");
+    document.getElementById("fix-nota-desc").textContent =
+      `Ditemukan ${legacyNotaCache.length} pesanan lama yang masih pakai cara penomoran nota yang lama, sehingga nomornya bisa sama dengan pesanan baru. Klik tombol di bawah untuk menomori ulang pesanan-pesanan lama itu (sekali jalan, aman diulang kapan saja).`;
+    card.style.display = "block";
+  } catch (err) {
+    showToast("Gagal memeriksa riwayat: " + friendlyFirebaseError(err), "error");
+  }
 }
 
 // Beri nota_tahun/nota_seq yang BENAR (lanjut dari nomor counter yang
@@ -101,13 +153,11 @@ function checkDuplicateNotaNumbers() {
 // tidak tabrakan sesama proses ini sendiri. Diurutkan dari yang paling lama
 // dulu supaya nomor barunya tetap terasa kronologis.
 async function fixDuplicateNotaNumbers() {
-  const legacy = lapOrders
-    .filter((o) => !o.nota_seq || !o.nota_tahun)
-    .sort((a, b) => {
-      const da = a.tanggal && a.tanggal.toDate ? a.tanggal.toDate() : new Date(a.tanggal || 0);
-      const db_ = b.tanggal && b.tanggal.toDate ? b.tanggal.toDate() : new Date(b.tanggal || 0);
-      return da - db_;
-    });
+  const legacy = legacyNotaCache.slice().sort((a, b) => {
+    const da = a.tanggal && a.tanggal.toDate ? a.tanggal.toDate() : new Date(a.tanggal || 0);
+    const db_ = b.tanggal && b.tanggal.toDate ? b.tanggal.toDate() : new Date(b.tanggal || 0);
+    return da - db_;
+  });
   if (legacy.length === 0) {
     showToast("Tidak ada nomor nota yang perlu diperbaiki.", "success");
     return;
@@ -138,23 +188,29 @@ async function fixDuplicateNotaNumbers() {
   }
   showToast(`${fixed} nomor nota berhasil diperbaiki.`, "success");
   document.getElementById("fix-nota-card").style.display = "none";
-  applyReportFilter();
+  await applyReportFilter();
 }
 
-function applyReportFilter() {
-  const dari = document.getElementById("lap-dari").value;
-  const sampai = document.getElementById("lap-sampai").value;
+async function applyReportFilter() {
+  const container = document.getElementById("laporan-table");
+  const prevHtml = container ? container.innerHTML : "";
+  try {
+    if (container) container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+    // Tanggal "Dari"/"Sampai" menentukan query ke server (lihat loadLaporanOrders),
+    // jadi setiap klik "Terapkan Filter" perlu baca ulang dari Firestore --
+    // bukan cuma menyaring data yang sudah ada di memori seperti sebelumnya.
+    await loadLaporanOrders();
+  } catch (err) {
+    if (container) container.innerHTML = prevHtml;
+    showToast("Gagal memuat laporan: " + friendlyFirebaseError(err), "error");
+    return;
+  }
+
   const produk = document.getElementById("lap-produk").value;
   const cabangEl = document.getElementById("lap-cabang");
   const cabangId = cabangEl ? cabangEl.value : "";
 
-  const fromDate = dari ? new Date(dari + "T00:00:00") : null;
-  const toDate = sampai ? new Date(sampai + "T23:59:59") : null;
-
   lapFiltered = lapOrders.filter((o) => {
-    const tgl = o.tanggal && o.tanggal.toDate ? o.tanggal.toDate() : new Date(o.tanggal);
-    if (fromDate && tgl < fromDate) return false;
-    if (toDate && tgl > toDate) return false;
     if (produk && !(o.items || []).some((it) => it.product_name === produk)) return false;
     if (cabangId && o.cabang_id !== cabangId) return false;
     return true;

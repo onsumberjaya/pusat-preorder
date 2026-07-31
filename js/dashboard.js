@@ -6,17 +6,16 @@ let chartAlamat = null;
 let chartWaktu = null;
 let dashGranularitas = "harian";
 
-// Tombol Filter di sebelah judul halaman -- filter tersembunyi secara
-// default (di semua ukuran layar) dan baru muncul saat tombol ini diklik.
+// Tombol "Sembunyikan"/"Tampilkan" filter, khusus tampilan HP (tombolnya
+// sendiri disembunyikan di desktop lewat CSS .mobile-only).
 function toggleDashFilterVisibility() {
   const toolbar = document.getElementById("dash-filter-toolbar");
   const btn = document.getElementById("dash-filter-toggle-btn");
   const hidden = toolbar.style.display === "none";
   toolbar.style.display = hidden ? "" : "none";
-  btn.className = hidden ? "btn-primary btn-sm" : "btn-secondary btn-sm";
   btn.innerHTML = hidden
-    ? '<i class="ph-bold ph-x"></i> Tutup Filter'
-    : '<i class="ph-bold ph-funnel"></i> Filter';
+    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan'
+    : '<i class="ph-bold ph-eye"></i> Tampilkan';
 }
 
 function resolveWaveLabel(item) {
@@ -76,61 +75,48 @@ function cabangNamaDash(cabangId) {
   return c ? c.nama : "Belum Ada Cabang";
 }
 
-window.onAuthReady = async function (profile) {
-  let ordersLoaded = false;
-  let productsLoaded = false;
-  let cabangLoaded = false;
+let dashProfile = null;
 
-  function tryRender() {
-    if (!ordersLoaded || !productsLoaded || !cabangLoaded) return;
+// Sengaja pakai .get() (baca sekali), BUKAN onSnapshot (real-time). Dashboard
+// ini menampilkan ringkasan, bukan angka yang harus update detik-itu-juga --
+// listener real-time yang menyala terus di halaman ini boros bacaan
+// Firestore. Klik "Muat Ulang" kapan pun perlu angka terbaru.
+async function loadDashboardData(profile) {
+  const container = document.getElementById("dashboard-content");
+  container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+  try {
+    // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...), kalau
+    // tidak Firestore rules akan menolak query ini sepenuhnya (bukan cuma
+    // menyaring hasilnya) karena berpotensi mengembalikan data cabang lain.
+    let ordersQuery = db.collection("orders");
+    if (!canAccessAllBranches(profile) && profile.cabang_id) {
+      ordersQuery = ordersQuery.where("cabang_id", "==", profile.cabang_id);
+    }
+
+    const [orderSnap, prodSnap, cabangSnap] = await Promise.all([
+      ordersQuery.get(),
+      db.collection("products").orderBy("nama").get(),
+      db.collection("cabang").orderBy("nama").get(),
+    ]);
+    dashOrders = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    dashProducts = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    allCabangDash = cabangSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
     updateGelombangFilterOptionsDash();
     updateCabangFilterOptionsDash(profile);
     renderDashboard();
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
   }
+}
 
-  // Karyawan cabang: query WAJIB dibatasi where('cabang_id', '==', ...), kalau
-  // tidak Firestore rules akan menolak query ini sepenuhnya (bukan cuma
-  // menyaring hasilnya) karena berpotensi mengembalikan data cabang lain.
-  let ordersQuery = db.collection("orders");
-  if (!canAccessAllBranches(profile) && profile.cabang_id) {
-    ordersQuery = ordersQuery.where("cabang_id", "==", profile.cabang_id);
-  }
-  ordersQuery.onSnapshot(
-    (snap) => {
-      dashOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      ordersLoaded = true;
-      tryRender();
-    },
-    (err) => {
-      document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
-    }
-  );
+function refreshDashboard() {
+  if (dashProfile) loadDashboardData(dashProfile);
+}
 
-  db.collection("products")
-    .orderBy("nama")
-    .onSnapshot(
-      (snap) => {
-        dashProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        productsLoaded = true;
-        tryRender();
-      },
-      (err) => {
-        document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
-      }
-    );
-
-  db.collection("cabang")
-    .orderBy("nama")
-    .onSnapshot(
-      (snap) => {
-        allCabangDash = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        cabangLoaded = true;
-        tryRender();
-      },
-      (err) => {
-        document.getElementById("dashboard-content").innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
-      }
-    );
+window.onAuthReady = async function (profile) {
+  dashProfile = profile;
+  loadDashboardData(profile);
 
   document.getElementById("filter-periode").addEventListener("change", (e) => {
     const isCustom = e.target.value === "custom";
@@ -283,7 +269,7 @@ function renderDashboard() {
 
   const container = document.getElementById("dashboard-content");
   container.innerHTML = `
-    <div class="grid grid-5 stat-grid">
+    <div class="grid grid-5" style="margin-bottom:20px;">
       <div class="stat-card brand">
         <div class="stat-icon"><i class="ph-bold ph-users-three"></i></div>
         <div class="stat-body"><div class="stat-label">Jumlah Pembeli</div><div class="stat-value">${pembeliUnik}</div></div>
@@ -316,19 +302,17 @@ function renderDashboard() {
         </select>
       </div>
       <p style="font-size:12px; color:var(--gray-400); margin:-4px 0 12px;">Tips: pakai filter "Rentang Tanggal..." di atas untuk atur sendiri periode yang ditampilkan.</p>
-      <div class="chart-box chart-box-waktu">
-        <canvas id="chart-waktu"></canvas>
-      </div>
+      <canvas id="chart-waktu" height="90"></canvas>
     </div>
 
     <div class="grid grid-2" style="margin-top:20px;">
       <div class="card">
         <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-chart-bar"></i></span><h3>Jumlah Pesanan per Produk</h3></div>
-        <div class="chart-box"><canvas id="chart-produk"></canvas></div>
+        <canvas id="chart-produk" height="220"></canvas>
       </div>
       <div class="card">
         <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-map-pin"></i></span><h3>Jumlah Unit Terjual per Alamat (Top 10)</h3></div>
-        <div class="chart-box" style="height:280px;"><canvas id="chart-alamat"></canvas></div>
+        <canvas id="chart-alamat" height="280"></canvas>
       </div>
     </div>
 
@@ -423,7 +407,6 @@ function drawTimeSeriesChart(canvasId, timeSeries, produkNames, produkColorMap) 
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
       plugins: { legend: { display: true, position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },
@@ -452,7 +435,6 @@ function drawBarChart(canvasId, dataObj, varName, color, horizontal) {
     options: {
       indexAxis: horizontal ? "y" : "x",
       responsive: true,
-      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: horizontal
         ? { x: { beginAtZero: true, ticks: { precision: 0 } } }

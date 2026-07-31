@@ -30,81 +30,13 @@ auth.onAuthStateChanged(async (user) => {
 
     if (typeof renderSidebar === "function") renderSidebar(profile);
     if (typeof window.onAuthReady === "function") window.onAuthReady(profile);
-
-    watchSingleSession(user.uid);
   } catch (err) {
     console.error(err);
     showToast("Gagal memuat profil pengguna.", "error");
   }
 });
 
-// Fitur "1 sesi login per perangkat". localStorage dibagi otomatis ke semua
-// tab dalam browser yang sama di komputer yang sama -- jadi buka beberapa
-// tab di 1 komputer tetap dianggap 1 sesi, tidak saling menendang.
-let sessionKickHandled = false;
-function watchSingleSession(uid) {
-  const localSessionId = localStorage.getItem("device_session_id");
-
-  if (!localSessionId) {
-    // Sesi ini belum tercatat lokal -- kemungkinan besar login dari SEBELUM
-    // fitur ini ada, localStorage sempat kepencet bersih, atau ada beberapa
-    // tab di browser yang sama yang KEBETULAN sama-sama baru pertama kali
-    // mengalami ini bersamaan (mis. browser baru start & mengembalikan
-    // banyak tab sekaligus). Supaya tab-tab semacam itu tidak saling
-    // menimpa lalu saling menendang satu sama lain, pakai TRANSAKSI: baca
-    // dulu apa yang tercatat di server SEKARANG -- kalau ternyata sudah ada
-    // (dari tab lain yang menang lebih dulu), ikuti saja ID itu; baru kalau
-    // memang benar-benar belum pernah ada sama sekali, klaim sebagai sesi
-    // ini. Transaksi memastikan baca+tulis ini atomik, tidak ada 2 tab yang
-    // bisa lolos mengklaim ID berbeda secara bersamaan.
-    const newId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const ref = db.collection("users").doc(uid);
-    db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      const existing = snap.exists ? snap.data().active_session_id : null;
-      if (existing) return existing;
-      tx.update(ref, { active_session_id: newId });
-      return newId;
-    })
-      .then((finalId) => {
-        localStorage.setItem("device_session_id", finalId);
-        watchSingleSession(uid); // localStorage sudah terisi -- lanjut pasang pengawas sesi seperti biasa
-      })
-      .catch(() => {
-        // Gagal transaksi (jarang terjadi) -- jangan sampai macet, anggap
-        // valid dengan ID sendiri supaya orang tetap bisa lanjut pakai app.
-        localStorage.setItem("device_session_id", newId);
-      });
-    return;
-  }
-
-  db.collection("users")
-    .doc(uid)
-    .onSnapshot((snap) => {
-      if (sessionKickHandled || !snap.exists) return;
-      const serverSessionId = snap.data().active_session_id;
-      if (serverSessionId && serverSessionId !== localSessionId) {
-        sessionKickHandled = true;
-        localStorage.removeItem("device_session_id");
-        alert("Sesi Anda diakhiri karena akun ini baru saja login dari perangkat lain.");
-        auth.signOut().then(() => (window.location.href = "index.html"));
-      }
-    });
-}
-
-async function logout() {
+function logout() {
   if (!confirm("Keluar dari aplikasi?")) return;
-  const uid = auth.currentUser && auth.currentUser.uid;
-  localStorage.removeItem("device_session_id");
-  // Bersihkan juga active_session_id di server (bukan cuma lokal) -- harus
-  // dilakukan SEBELUM signOut(), karena begitu signOut() selesai, request.auth
-  // jadi null dan tidak lagi punya izin menulis ke dokumen users manapun.
-  if (uid) {
-    try {
-      await db.collection("users").doc(uid).update({ active_session_id: firebase.firestore.FieldValue.delete() });
-    } catch (e) {
-      // Diamkan -- kalaupun gagal, tetap lanjut logout seperti biasa.
-    }
-  }
   auth.signOut().then(() => (window.location.href = "index.html"));
 }

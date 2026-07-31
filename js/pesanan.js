@@ -2,19 +2,27 @@ let allOrders = [];
 let allProductsMap = {};
 let allCabangMap = {};
 let selectedIds = new Set();
-let unsubscribeOrders = null;
+let currentProfile = null;
 
-// Tombol Filter di sebelah judul halaman -- filter tersembunyi secara
-// default (di semua ukuran layar) dan baru muncul saat tombol ini diklik.
+// Default rentang tanggal saat halaman dibuka: 30 hari terakhir. Ini murni
+// supaya bacaan Firestore tidak membengkak seiring bertambahnya riwayat
+// pesanan -- untuk lihat data yang lebih lama, ubah saja tanggal "Dari".
+function defaultDariTanggal() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+
+// Tombol "Sembunyikan"/"Tampilkan" filter, khusus tampilan HP (tombolnya
+// sendiri disembunyikan di desktop lewat CSS .mobile-only).
 function togglePesananFilterVisibility() {
   const toolbar = document.getElementById("pesanan-filter-toolbar");
   const btn = document.getElementById("pesanan-filter-toggle-btn");
   const hidden = toolbar.style.display === "none";
   toolbar.style.display = hidden ? "" : "none";
-  btn.className = hidden ? "btn-primary btn-sm" : "btn-secondary btn-sm";
   btn.innerHTML = hidden
-    ? '<i class="ph-bold ph-x"></i> Tutup Filter'
-    : '<i class="ph-bold ph-funnel"></i> Filter';
+    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan'
+    : '<i class="ph-bold ph-eye"></i> Tampilkan';
 }
 
 function resolveWaveLabel(item) {
@@ -40,13 +48,19 @@ function hasPriceMismatch(order) {
 }
 
 window.onAuthReady = function (profile) {
+  currentProfile = profile;
   listenProductFilters();
-  listenOrders(profile);
+
+  document.getElementById("filter-dari").value = defaultDariTanggal();
+  document.getElementById("filter-sampai").value = new Date().toISOString().slice(0, 10);
+  loadOrders();
 
   if (canAccessAllBranches(profile)) {
     listenCabangFilter();
   }
 
+  document.getElementById("filter-dari").addEventListener("change", loadOrders);
+  document.getElementById("filter-sampai").addEventListener("change", loadOrders);
   document.getElementById("filter-search").addEventListener("input", debounceRender);
   document.getElementById("filter-cabang").addEventListener("change", renderOrders);
   document.getElementById("filter-produk").addEventListener("change", () => {
@@ -69,7 +83,7 @@ window.onAuthReady = function (profile) {
 
 // Filter Cabang cuma ditampilkan untuk Owner/Admin Kasir (yang boleh lihat
 // semua cabang) -- Karyawan cabang tidak perlu ini karena datanya sudah
-// otomatis terbatas ke cabangnya sendiri lewat query di listenOrders().
+// otomatis terbatas ke cabangnya sendiri lewat query di loadOrders().
 function listenCabangFilter() {
   const select = document.getElementById("filter-cabang");
   select.style.display = "";
@@ -162,20 +176,39 @@ function updateGelombangFilterOptions() {
 // bukan cuma supaya rapi, tapi karena Firestore rules menolak query yang
 // berpotensi mengembalikan dokumen di luar izin baca user (lihat komentar
 // di firestore.rules). Owner/Admin Kasir tetap lihat semua cabang seperti biasa.
-function listenOrders(profile) {
-  let query = db.collection("orders").orderBy("order_no", "desc");
-  if (!canAccessAllBranches(profile) && profile.cabang_id) {
-    query = db.collection("orders").where("cabang_id", "==", profile.cabang_id).orderBy("order_no", "desc");
-  }
-  unsubscribeOrders = query.onSnapshot(
-    (snap) => {
-      allOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderOrders();
-    },
-    (err) => {
-      showToast("Gagal memuat pesanan: " + friendlyFirebaseError(err), "error");
+// Catatan: sengaja pakai .get() (baca sekali), BUKAN onSnapshot (real-time).
+// Data pesanan di sini bisa banyak & terus bertambah, jadi listener real-time
+// yang menyala terus-menerus di halaman ini cukup boros bacaan Firestore.
+// Kalau ada pembayaran/perubahan baru dari perangkat lain, klik "Muat Ulang"
+// atau ubah filter tanggal untuk menyegarkan datanya.
+async function loadOrders() {
+  const profile = currentProfile;
+  if (!profile) return;
+
+  const dari = document.getElementById("filter-dari").value;
+  const sampai = document.getElementById("filter-sampai").value;
+  const container = document.getElementById("order-list");
+  container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+
+  try {
+    let query = db.collection("orders");
+    if (!canAccessAllBranches(profile) && profile.cabang_id) {
+      query = query.where("cabang_id", "==", profile.cabang_id);
     }
-  );
+    if (dari) query = query.where("tanggal", ">=", new Date(dari + "T00:00:00"));
+    if (sampai) query = query.where("tanggal", "<=", new Date(sampai + "T23:59:59"));
+    query = query.orderBy("tanggal", "desc");
+
+    const snap = await query.get();
+    allOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderOrders();
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
+  }
+}
+
+function refreshOrders() {
+  loadOrders();
 }
 
 function getFilteredOrders() {
@@ -213,7 +246,15 @@ function resetFilters() {
   document.getElementById("filter-ambil").value = "";
   document.getElementById("filter-harga-janggal").checked = false;
   document.getElementById("anomali-chip").classList.remove("active");
-  renderOrders();
+
+  const dariEl = document.getElementById("filter-dari");
+  const sampaiEl = document.getElementById("filter-sampai");
+  const rangeChanged = dariEl.value !== defaultDariTanggal() || sampaiEl.value !== new Date().toISOString().slice(0, 10);
+  dariEl.value = defaultDariTanggal();
+  sampaiEl.value = new Date().toISOString().slice(0, 10);
+
+  if (rangeChanged) loadOrders();
+  else renderOrders();
 }
 
 function renderOrders() {
@@ -235,7 +276,7 @@ function renderOrders() {
         <table>
           <thead>
             <tr>
-              <th><input type="checkbox" id="select-all" onclick="onSelectAllClick(event)" /></th>
+              <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
               <th>Nota / Tanggal</th>
               ${showCabangCol ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
@@ -255,7 +296,6 @@ function renderOrders() {
     </div>
   `;
   updateBulkToolbar();
-  syncSelectAllCheckbox();
 }
 
 function renderRow(o, isOwner, showCabangCol) {
@@ -288,7 +328,7 @@ function renderRow(o, isOwner, showCabangCol) {
 
   return `
     <tr>
-      <td><input type="checkbox" ${checked} style="${selectionModeActive ? "" : "display:none;"}" onchange="toggleSelect('${o.id}', this.checked)" /></td>
+      <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
@@ -316,52 +356,16 @@ function renderRow(o, isOwner, showCabangCol) {
 }
 
 // ---------- Seleksi & Bulk Action ----------
-// Kotak centang per baris SEMBUNYI secara default (mencegah ketidaksengajaan
-// klik saat mau lihat detail/cetak nota) -- baru muncul begitu mode pilih
-// diaktifkan lewat kotak centang di header:
-//   klik 1x header -> aktifkan mode pilih (kotak per baris muncul, belum ada yang terpilih)
-//   klik 2x header -> pilih semua baris yang sedang tampil
-//   klik 3x header -> batalkan semua pilihan & sembunyikan lagi kotaknya
-let selectionModeActive = false;
-
-function onSelectAllClick(e) {
-  e.preventDefault(); // checked/indeterminate diatur manual lewat syncSelectAllCheckbox(), bukan oleh browser
-  const visible = getFilteredOrders();
-  const allSelected = visible.length > 0 && visible.every((o) => selectedIds.has(o.id));
-
-  if (!selectionModeActive) {
-    selectionModeActive = true;
-  } else if (!allSelected) {
-    visible.forEach((o) => selectedIds.add(o.id));
-  } else {
-    selectedIds.clear();
-    selectionModeActive = false;
-  }
-  renderOrders();
-}
-
-function syncSelectAllCheckbox() {
-  const el = document.getElementById("select-all");
-  if (!el) return;
-  const visible = getFilteredOrders();
-  const selectedVisibleCount = visible.filter((o) => selectedIds.has(o.id)).length;
-  if (!selectionModeActive || selectedVisibleCount === 0) {
-    el.checked = false;
-    el.indeterminate = false;
-  } else if (selectedVisibleCount === visible.length) {
-    el.checked = true;
-    el.indeterminate = false;
-  } else {
-    el.checked = false;
-    el.indeterminate = true; // sebagian terpilih -- tampil garis (-) di kotaknya
-  }
-}
-
 function toggleSelect(id, checked) {
   if (checked) selectedIds.add(id);
   else selectedIds.delete(id);
-  syncSelectAllCheckbox();
   updateBulkToolbar();
+}
+function toggleSelectAll(checked) {
+  const visible = getFilteredOrders();
+  if (checked) visible.forEach((o) => selectedIds.add(o.id));
+  else visible.forEach((o) => selectedIds.delete(o.id));
+  renderOrders();
 }
 function updateBulkToolbar() {
   const toolbar = document.getElementById("bulk-toolbar");
@@ -404,6 +408,7 @@ async function bulkAction(type, value) {
       showToast(skippedCount > 0 ? `${idsToProcess.length} pesanan diperbarui, ${skippedCount} dilewati.` : "Berhasil memperbarui pesanan terpilih.", "success");
       selectedIds.clear();
       updateBulkToolbar();
+      await loadOrders();
     } catch (err) {
       showToast(friendlyFirebaseError(err), "error");
     }
@@ -446,6 +451,7 @@ async function bulkAction(type, value) {
     showToast("Berhasil memperbarui pesanan terpilih.", "success");
     selectedIds.clear();
     updateBulkToolbar();
+    await loadOrders();
   } catch (err) {
     showToast(friendlyFirebaseError(err), "error");
   }
@@ -461,6 +467,7 @@ async function bulkDelete() {
     showToast("Pesanan terpilih dihapus.", "success");
     selectedIds.clear();
     updateBulkToolbar();
+    await loadOrders();
   } catch (err) {
     showToast(friendlyFirebaseError(err), "error");
   }
@@ -471,6 +478,7 @@ async function deleteOrder(id) {
   try {
     await deleteOrderCascade(id);
     showToast("Pesanan dihapus.", "success");
+    await loadOrders();
   } catch (err) {
     showToast(friendlyFirebaseError(err), "error");
   }
@@ -626,6 +634,12 @@ function renderDetailModal(order) {
         });
         showToast("Pembayaran tercatat.", "success");
         renderDetailModal(updated);
+        // List di belakang modal sudah tidak realtime -- perbarui manual di
+        // memori supaya begitu modal ditutup, tabelnya langsung sinkron
+        // tanpa perlu baca ulang seluruh koleksi dari server.
+        const idx = allOrders.findIndex((o) => o.id === updated.id);
+        if (idx !== -1) allOrders[idx] = updated;
+        renderOrders();
       } catch (err) {
         showToast(err.message || friendlyFirebaseError(err), "error");
       }
