@@ -274,7 +274,13 @@ function renderOrders() {
         <table>
           <thead>
             <tr>
-              <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
+              <th style="text-align:center;">
+                ${
+                  checkboxesRevealed
+                    ? `<input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" title="Pilih/batal pilih semua" /><br /><a href="#" onclick="exitSelectionMode(); return false;" style="font-size:10px; color:var(--gray-400); text-decoration:underline;">Batal</a>`
+                    : `<input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" title="Klik untuk mulai pilih beberapa pesanan sekaligus" /><br /><span style="font-size:10px; font-weight:400; color:var(--gray-400);">No</span>`
+                }
+              </th>
               <th>Nota / Tanggal</th>
               ${showCabangCol ? "<th>Cabang</th>" : ""}
               <th>Pemesan</th>
@@ -287,7 +293,7 @@ function renderOrders() {
             </tr>
           </thead>
           <tbody>
-            ${list.map((o) => renderRow(o, isOwner, showCabangCol)).join("")}
+            ${list.map((o, idx) => renderRow(o, idx, isOwner, showCabangCol)).join("")}
           </tbody>
         </table>
       </div>
@@ -297,7 +303,7 @@ function renderOrders() {
   updateBulkToolbar();
 }
 
-function renderRow(o, isOwner, showCabangCol) {
+function renderRow(o, idx, isOwner, showCabangCol) {
   const items = o.items || [];
   const checked = selectedIds.has(o.id) ? "checked" : "";
   const janggal = hasOrderAnomaly(o, allProductsMap);
@@ -327,7 +333,9 @@ function renderRow(o, isOwner, showCabangCol) {
 
   return `
     <tr>
-      <td style="${checkboxesRevealed ? "" : "display:none;"}"><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
+      <td style="text-align:center; color:var(--gray-400); font-size:12.5px;">
+        ${checkboxesRevealed ? `<input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" />` : idx + 1}
+      </td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
@@ -355,6 +363,11 @@ function renderRow(o, isOwner, showCabangCol) {
 }
 
 // ---------- Seleksi & Bulk Action ----------
+function exitSelectionMode() {
+  checkboxesRevealed = false;
+  selectedIds.clear();
+  renderOrders();
+}
 function toggleSelect(id, checked) {
   if (checked) selectedIds.add(id);
   else selectedIds.delete(id);
