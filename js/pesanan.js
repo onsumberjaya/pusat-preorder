@@ -3,6 +3,8 @@ let allProductsMap = {};
 let allCabangMap = {};
 let selectedIds = new Set();
 let currentProfile = null;
+let currentPage = 1;
+let pageSize = 20;
 
 // Kotak centang per pesanan disembunyikan sampai kotak centang di header
 // diklik pertama kali (baru muncul, belum memilih apa pun). Klik header
@@ -57,18 +59,48 @@ window.onAuthReady = function (profile) {
     listenCabangFilter();
   }
 
-  document.getElementById("filter-dari").addEventListener("change", loadOrders);
-  document.getElementById("filter-sampai").addEventListener("change", loadOrders);
-  document.getElementById("filter-search").addEventListener("input", debounceRender);
-  document.getElementById("filter-cabang").addEventListener("change", renderOrders);
+  document.getElementById("filter-dari").addEventListener("change", () => {
+    currentPage = 1;
+    loadOrders();
+  });
+  document.getElementById("filter-sampai").addEventListener("change", () => {
+    currentPage = 1;
+    loadOrders();
+  });
+  document.getElementById("filter-search").addEventListener("input", () => {
+    currentPage = 1;
+    debounceRender();
+  });
+  document.getElementById("filter-cabang").addEventListener("change", () => {
+    currentPage = 1;
+    renderOrders();
+  });
   document.getElementById("filter-produk").addEventListener("change", () => {
+    currentPage = 1;
     updateGelombangFilterOptions();
     renderOrders();
   });
-  document.getElementById("filter-gelombang").addEventListener("change", renderOrders);
-  document.getElementById("filter-bayar").addEventListener("change", renderOrders);
-  document.getElementById("filter-ambil").addEventListener("change", renderOrders);
-  document.getElementById("filter-harga-janggal").addEventListener("change", renderOrders);
+  document.getElementById("filter-gelombang").addEventListener("change", () => {
+    currentPage = 1;
+    renderOrders();
+  });
+  document.getElementById("filter-bayar").addEventListener("change", () => {
+    currentPage = 1;
+    renderOrders();
+  });
+  document.getElementById("filter-ambil").addEventListener("change", () => {
+    currentPage = 1;
+    renderOrders();
+  });
+  document.getElementById("filter-harga-janggal").addEventListener("change", () => {
+    currentPage = 1;
+    renderOrders();
+  });
+  document.getElementById("filter-pagesize").addEventListener("change", (e) => {
+    pageSize = Number(e.target.value) || 20;
+    currentPage = 1;
+    renderOrders();
+  });
 
   const anomaliCheckbox = document.getElementById("filter-harga-janggal");
   const anomaliChip = document.getElementById("anomali-chip");
@@ -206,6 +238,7 @@ async function loadOrders() {
 }
 
 function refreshOrders() {
+  currentPage = 1;
   loadOrders();
 }
 
@@ -235,6 +268,7 @@ function getFilteredOrders() {
 }
 
 function resetFilters() {
+  currentPage = 1;
   document.getElementById("filter-search").value = "";
   const cabangFilterEl = document.getElementById("filter-cabang");
   if (cabangFilterEl) cabangFilterEl.value = "";
@@ -265,6 +299,16 @@ function renderOrders() {
     return;
   }
 
+  // Potong ke halaman yang sedang aktif. Kalau halaman aktif ternyata sudah
+  // melebihi jumlah halaman yang ada (mis. setelah filter dipersempit atau
+  // ada pesanan yang dihapus), otomatis mundur ke halaman terakhir yang
+  // masih valid supaya tidak nampilkan halaman kosong.
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const startIdx = (currentPage - 1) * pageSize;
+  const pageList = list.slice(startIdx, startIdx + pageSize);
+
   const isOwner = window.currentUserProfile && window.currentUserProfile.role === "owner";
   const showCabangCol = canAccessAllBranches(window.currentUserProfile);
 
@@ -293,14 +337,56 @@ function renderOrders() {
             </tr>
           </thead>
           <tbody>
-            ${list.map((o, idx) => renderRow(o, idx, isOwner, showCabangCol)).join("")}
+            ${pageList.map((o, idx) => renderRow(o, startIdx + idx, isOwner, showCabangCol)).join("")}
           </tbody>
         </table>
       </div>
     </div>
+    ${renderPaginationControls(list.length, totalPages)}
   `;
   syncSelectAllCheckbox();
   updateBulkToolbar();
+}
+
+function renderPaginationControls(totalItems, totalPages) {
+  if (totalPages <= 1) {
+    return `<p style="text-align:center; font-size:12.5px; color:var(--gray-400); margin-top:10px;">${totalItems} pesanan</p>`;
+  }
+
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  // Nomor halaman ditampilkan berjendela (maks 5 angka) di sekitar halaman
+  // aktif, supaya tidak menumpuk kalau halamannya sangat banyak.
+  let start = Math.max(1, currentPage - 2);
+  let end = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+  const pageNumbers = [];
+  for (let p = start; p <= end; p++) pageNumbers.push(p);
+
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px;">
+      <span style="font-size:12.5px; color:var(--gray-500);">Menampilkan ${startItem}–${endItem} dari ${totalItems} pesanan</span>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="btn-secondary btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}><i class="ph-bold ph-caret-left"></i></button>
+        ${start > 1 ? `<button class="btn-secondary btn-sm" onclick="goToPage(1)">1</button>${start > 2 ? '<span style="color:var(--gray-400);">…</span>' : ""}` : ""}
+        ${pageNumbers
+          .map(
+            (p) =>
+              `<button class="btn-sm" style="min-width:32px; ${p === currentPage ? "background:var(--brand-600); color:#fff; border-color:var(--brand-600);" : "background:#fff; border:1px solid var(--gray-200); color:var(--gray-700);"}" onclick="goToPage(${p})">${p}</button>`
+          )
+          .join("")}
+        ${end < totalPages ? `${end < totalPages - 1 ? '<span style="color:var(--gray-400);">…</span>' : ""}<button class="btn-secondary btn-sm" onclick="goToPage(${totalPages})">${totalPages}</button>` : ""}
+        <button class="btn-secondary btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}><i class="ph-bold ph-caret-right"></i></button>
+      </div>
+    </div>
+  `;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  renderOrders();
+  document.getElementById("order-list").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderRow(o, idx, isOwner, showCabangCol) {
