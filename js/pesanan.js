@@ -371,6 +371,13 @@ function exitSelectionMode() {
 function toggleSelect(id, checked) {
   if (checked) selectedIds.add(id);
   else selectedIds.delete(id);
+  if (selectedIds.size === 0) {
+    // Semua terpilih sudah dibatalkan satu-satu -> otomatis balik ke
+    // tampilan nomor urut lagi (perlu render ulang tabelnya).
+    checkboxesRevealed = false;
+    renderOrders();
+    return;
+  }
   syncSelectAllCheckbox();
   updateBulkToolbar();
 }
@@ -384,8 +391,15 @@ function toggleSelectAll(nativeChecked) {
   }
   // Klik-klik berikutnya: select all / deselect all seperti biasa.
   const visible = getFilteredOrders();
-  if (nativeChecked) visible.forEach((o) => selectedIds.add(o.id));
-  else visible.forEach((o) => selectedIds.delete(o.id));
+  if (nativeChecked) {
+    visible.forEach((o) => selectedIds.add(o.id));
+  } else {
+    visible.forEach((o) => selectedIds.delete(o.id));
+    // Kalau habis "batal pilih semua" ternyata tidak ada satupun yang
+    // tersisa terpilih (mis. tidak ada seleksi lain di luar yang sedang
+    // difilter), otomatis balik ke tampilan nomor urut.
+    if (selectedIds.size === 0) checkboxesRevealed = false;
+  }
   renderOrders();
 }
 function syncSelectAllCheckbox() {
