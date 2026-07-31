@@ -389,10 +389,16 @@ table tbody tr:hover { background: var(--gray-50); }
 .table-wrap { overflow-x: auto; border-radius: var(--radius); }
 
 /* Tabel di halaman Daftar Pesanan -- teks data pesanan dikecilkan sedikit
-   (khusus tabel ini, tidak memengaruhi tabel di halaman lain). */
-#order-list table { font-size: 11px; }
-#order-list table th { font-size: 9.5px; padding: 9px 10px; }
+   (khusus tabel ini, tidak memengaruhi tabel di halaman lain). Sengaja
+   dibuat LEBIH KECIL dari teks judul kolomnya (bukan lebih besar). */
+#order-list table { font-size: 10px; }
+#order-list table th { font-size: 10.5px; padding: 9px 10px; }
 #order-list table td { padding: 8px 10px; }
+
+/* Tabel di halaman Laporan & Export -- sama, teks isi dibuat lebih kecil
+   dari judul kolomnya. */
+#laporan-table table { font-size: 10px; }
+#laporan-table table th { font-size: 11px; }
 
 .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); font-size: 13.5px; }
 
