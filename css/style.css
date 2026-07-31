@@ -390,9 +390,9 @@ table tbody tr:hover { background: var(--gray-50); }
 
 /* Tabel di halaman Daftar Pesanan -- teks data pesanan dikecilkan sedikit
    (khusus tabel ini, tidak memengaruhi tabel di halaman lain). */
-#order-list table { font-size: 12.2px; }
-#order-list table th { font-size: 10px; }
-#order-list table td { padding: 10px 12px; }
+#order-list table { font-size: 11px; }
+#order-list table th { font-size: 9.5px; padding: 9px 10px; }
+#order-list table td { padding: 8px 10px; }
 
 .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); font-size: 13.5px; }
 

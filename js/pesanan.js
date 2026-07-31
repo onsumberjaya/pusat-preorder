@@ -330,18 +330,18 @@ function renderRow(o, isOwner, showCabangCol) {
       <td style="${checkboxesRevealed ? "" : "display:none;"}"><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
-        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
       </td>
       ${showCabangCol ? `<td>${escapeHtml(cabangNama)}</td>` : ""}
       <td>
         <div style="font-weight:600;">${escapeHtml(o.nama_pembeli)}</div>
-        <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:1px;">${escapeHtml(o.no_hp || "-")}</div>
       </td>
       <td style="min-width:170px;">${produkCell}</td>
       <td>${qtyCell}</td>
       <td style="text-align:right;">
         <div style="font-weight:700; color:var(--gray-900);">${formatRupiah(o.total)}</div>
-        ${belumLunas ? `<div style="font-size:11px; color:var(--gray-400); margin-top:1px;">Bayar: ${formatRupiah(o.paid_amount || 0)}</div>` : ""}
+        ${belumLunas ? `<div style="font-size:9.5px; color:var(--gray-400); margin-top:1px;">Bayar: ${formatRupiah(o.paid_amount || 0)}</div>` : ""}
       </td>
       <td><span class="badge ${STATUS_BAYAR_BADGE[o.status_bayar]}">${STATUS_BAYAR_LABEL[o.status_bayar].toUpperCase()}</span></td>
       <td><span class="badge ${o.is_diambil ? "badge-green" : "badge-gray"}">${o.is_diambil ? "SUDAH" : "BELUM"}</span></td>
