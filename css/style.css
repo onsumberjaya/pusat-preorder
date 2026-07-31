@@ -388,6 +388,12 @@ table tbody tr { transition: background 0.1s ease; }
 table tbody tr:hover { background: var(--gray-50); }
 .table-wrap { overflow-x: auto; border-radius: var(--radius); }
 
+/* Tabel di halaman Daftar Pesanan -- teks data pesanan dikecilkan sedikit
+   (khusus tabel ini, tidak memengaruhi tabel di halaman lain). */
+#order-list table { font-size: 12.2px; }
+#order-list table th { font-size: 10px; }
+#order-list table td { padding: 10px 12px; }
+
 .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); font-size: 13.5px; }
 
 /* ---------- Ikon aksi tabel (tombol bulat kecil) ---------- */
@@ -490,7 +496,7 @@ table tbody tr:hover { background: var(--gray-50); }
 
 /* Kotak pembungkus canvas grafik "Pesanan Masuk" -- tingginya diatur lewat
    CSS (bukan aspect-ratio bawaan Chart.js) supaya bisa dibedakan per layar. */
-.chart-waktu-box { position: relative; height: 240px; }
+.chart-waktu-box { position: relative; height: 220px; }
 
 /* Kotak pembungkus canvas grafik bar (Jumlah Pesanan per Produk, Jumlah Unit
    Terjual per Alamat) -- width:100% + position:relative supaya Chart.js
@@ -506,7 +512,7 @@ table tbody tr:hover { background: var(--gray-50); }
   .grid-5 .stat-card .stat-value { font-size: 15px; }
 
   /* Grafik Pesanan Masuk di HP: awalnya 505px, diturunkan ~28% jadi 365px. */
-  .chart-waktu-box { height: 340px; }
+  .chart-waktu-box { height: 365px; }
 
   /* Judul halaman dikecilkan sedikit & tombol Filter/Muat Ulang dirapatkan
      supaya tetap muat satu baris bersama judul (Dashboard, Daftar Pesanan). */
