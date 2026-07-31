@@ -61,7 +61,15 @@
       btn.disabled = true;
       btn.textContent = "Memproses...";
       try {
-        await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+        const cred = await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+        // Fitur "1 sesi login per perangkat": catat ID sesi perangkat ini,
+        // baik lokal (localStorage) maupun di profil pengguna di Firestore.
+        // auth-guard.js di halaman-halaman lain akan memantau ini dan
+        // menendang keluar sesi lama kalau ID-nya berbeda (login dari
+        // perangkat lain menggantikan sesi yang sedang aktif).
+        const sessionId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        localStorage.setItem("device_session_id", sessionId);
+        await db.collection("users").doc(cred.user.uid).update({ active_session_id: sessionId });
         window.location.href = "pesanan.html";
       } catch (err) {
         alertBox.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
