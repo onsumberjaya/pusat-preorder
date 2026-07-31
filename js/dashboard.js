@@ -7,16 +7,16 @@ let chartAlamat = null;
 let chartWaktu = null;
 let dashGranularitas = "harian";
 
-// Tombol "Sembunyikan"/"Tampilkan" filter, khusus tampilan HP (tombolnya
-// sendiri disembunyikan di desktop lewat CSS .mobile-only).
+// Tombol "Filter" di pojok kanan atas -- kotak filter disembunyikan
+// secara default dan baru muncul saat tombol ini diklik.
 function toggleDashFilterVisibility() {
   const toolbar = document.getElementById("dash-filter-toolbar");
   const btn = document.getElementById("dash-filter-toggle-btn");
   const hidden = toolbar.style.display === "none";
   toolbar.style.display = hidden ? "" : "none";
   btn.innerHTML = hidden
-    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan'
-    : '<i class="ph-bold ph-eye"></i> Tampilkan';
+    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan Filter'
+    : '<i class="ph-bold ph-funnel"></i> Filter';
 }
 
 function resolveWaveLabel(item) {

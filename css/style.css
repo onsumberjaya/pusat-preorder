@@ -488,6 +488,24 @@ table tbody tr:hover { background: var(--gray-50); }
 .grid-5 .stat-card .stat-label { font-size: 10.5px; margin-bottom: 4px; }
 .grid-5 .stat-card .stat-value { font-size: 19px; }
 
+/* Baris berisi tombol toggle filter, diletakkan di atas judul halaman
+   dan rata kanan (dipakai di Dashboard & Daftar Pesanan). */
+.filter-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+/* Kotak filter tanpa background putih (transparan), beda dari .card biasa. */
+.filter-box {
+  background: transparent;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.filter-box .toolbar { margin-bottom: 0; }
+
 .card-heading {
   display: flex;
   align-items: center;
