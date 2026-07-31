@@ -504,14 +504,6 @@ table tbody tr:hover { background: var(--gray-50); }
   .chart-waktu-box { height: 505px; }
 }
 
-/* Baris berisi tombol toggle filter, diletakkan di atas judul halaman
-   dan rata kanan (dipakai di Dashboard & Daftar Pesanan). */
-.filter-toggle-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
-
 /* Kotak filter tanpa background putih (transparan), beda dari .card biasa. */
 .filter-box {
   background: transparent;

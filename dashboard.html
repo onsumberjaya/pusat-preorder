@@ -15,18 +15,17 @@
   <div class="app-shell">
     <nav id="sidebar"></nav>
     <main class="content">
-      <div class="filter-toggle-row">
-        <button type="button" class="btn-secondary btn-sm" id="dash-filter-toggle-btn" onclick="toggleDashFilterVisibility()">
-          <i class="ph-bold ph-funnel"></i> Filter
-        </button>
-      </div>
-
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
         <div>
           <h1 class="page-title">Dashboard</h1>
           <p class="page-subtitle">Ringkasan performa penjualan preorder.</p>
         </div>
-        <button class="btn-secondary btn-sm" id="dashboard-refresh-btn" onclick="refreshDashboard()"><i class="ph-bold ph-arrows-clockwise"></i> Muat Ulang</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-secondary btn-sm" id="dash-filter-toggle-btn" onclick="toggleDashFilterVisibility()">
+            <i class="ph-bold ph-funnel"></i> Filter
+          </button>
+          <button class="btn-secondary btn-sm" id="dashboard-refresh-btn" onclick="refreshDashboard()"><i class="ph-bold ph-arrows-clockwise"></i> Muat Ulang</button>
+        </div>
       </div>
 
       <div class="filter-box" id="dash-filter-toolbar" style="display:none;">

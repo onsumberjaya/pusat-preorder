@@ -15,14 +15,18 @@
   <div class="app-shell">
     <nav id="sidebar"></nav>
     <main class="content">
-      <div class="filter-toggle-row">
-        <button type="button" class="btn-secondary btn-sm" id="pesanan-filter-toggle-btn" onclick="togglePesananFilterVisibility()">
-          <i class="ph-bold ph-funnel"></i> Filter
-        </button>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h1 class="page-title">Daftar Pesanan</h1>
+          <p class="page-subtitle">Semua pesanan preorder. Gunakan filter untuk mempersempit pencarian.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-secondary btn-sm" id="pesanan-filter-toggle-btn" onclick="togglePesananFilterVisibility()">
+            <i class="ph-bold ph-funnel"></i> Filter
+          </button>
+          <button class="btn-secondary btn-sm" onclick="refreshOrders()"><i class="ph-bold ph-arrows-clockwise"></i> Muat Ulang</button>
+        </div>
       </div>
-
-      <h1 class="page-title">Daftar Pesanan</h1>
-      <p class="page-subtitle">Semua pesanan preorder. Gunakan filter untuk mempersempit pencarian.</p>
 
       <div class="filter-box" id="pesanan-filter-toolbar" style="display:none;">
         <div class="toolbar">
@@ -51,7 +55,6 @@
             <input type="checkbox" id="filter-harga-janggal" /> ⚠️ Cek Anomali
           </label>
           <button class="btn-secondary btn-sm" onclick="resetFilters()">Reset Filter</button>
-          <button class="btn-secondary btn-sm" onclick="refreshOrders()"><i class="ph-bold ph-arrows-clockwise"></i> Muat Ulang</button>
         </div>
       </div>
 
