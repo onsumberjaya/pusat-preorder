@@ -319,7 +319,7 @@ function renderDashboard() {
         </select>
       </div>
       <p style="font-size:12px; color:var(--gray-400); margin:-4px 0 12px;">Tips: pakai filter "Rentang Tanggal..." di atas untuk atur sendiri periode yang ditampilkan.</p>
-      <canvas id="chart-waktu" height="90"></canvas>
+      <div class="chart-waktu-box"><canvas id="chart-waktu"></canvas></div>
     </div>
 
     <div class="grid grid-2" style="margin-top:20px;">
@@ -424,6 +424,7 @@ function drawTimeSeriesChart(canvasId, timeSeries, produkNames, produkColorMap) 
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: true, position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },

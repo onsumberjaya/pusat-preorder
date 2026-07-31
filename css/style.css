@@ -488,6 +488,22 @@ table tbody tr:hover { background: var(--gray-50); }
 .grid-5 .stat-card .stat-label { font-size: 10.5px; margin-bottom: 4px; }
 .grid-5 .stat-card .stat-value { font-size: 19px; }
 
+/* Kotak pembungkus canvas grafik "Pesanan Masuk" -- tingginya diatur lewat
+   CSS (bukan aspect-ratio bawaan Chart.js) supaya bisa dibedakan per layar. */
+.chart-waktu-box { position: relative; height: 220px; }
+
+@media (max-width: 860px) {
+  /* Kotak Jumlah Pembeli s/d Sudah/Belum Diambil dibuat lebih kecil & rapat di HP. */
+  .grid-5 { gap: 8px; }
+  .grid-5 .stat-card { padding: 10px 12px; gap: 8px; }
+  .grid-5 .stat-card .stat-icon { width: 26px; height: 26px; font-size: 12px; border-radius: 7px; }
+  .grid-5 .stat-card .stat-label { font-size: 9.5px; margin-bottom: 2px; }
+  .grid-5 .stat-card .stat-value { font-size: 15px; }
+
+  /* Grafik Pesanan Masuk ditambah tinggi +285px khusus di HP. */
+  .chart-waktu-box { height: 505px; }
+}
+
 /* Baris berisi tombol toggle filter, diletakkan di atas judul halaman
    dan rata kanan (dipakai di Dashboard & Daftar Pesanan). */
 .filter-toggle-row {
