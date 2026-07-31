@@ -85,6 +85,14 @@ window.onAuthReady = async function (profile) {
         wave_id: it.wave_id,
         jumlah: String(it.jumlah),
       }));
+      originalItemLookup = {};
+      (editOrderData.items || []).forEach((it) => {
+        originalItemLookup[originalItemKey(it.product_id, it.wave_id)] = {
+          product_name: it.product_name,
+          wave_label: it.wave_label,
+          harga_satuan: it.harga_satuan,
+        };
+      });
     } catch (err) {
       // Bisa gagal karena macam-macam sebab (pesanan dari cabang lain yang
       // ditolak Rules, koneksi putus, dll) -- jangan lanjut render form
@@ -152,11 +160,45 @@ function getProduct(id) {
 function getWave(product, waveId) {
   return product ? (product.waves || []).find((w) => w.id === waveId) : null;
 }
-function lineSubtotal(line) {
+
+// Untuk mode Edit: dipetakan dari item pesanan ASLI (data yang tersimpan
+// saat pesanan ini dibuat) -- dipakai sebagai cadangan kalau suatu baris
+// merujuk produk/gelombang yang SUDAH DIHAPUS dari katalog sejak pesanan ini
+// dibuat (jadi getProduct()/getWave() di bawah tidak ketemu apa-apa lagi).
+// Tanpa ini, baris seperti itu akan bikin handleSubmit() error diam-diam
+// (baca properti dari undefined/null) SEBELUM sempat masuk try/catch --
+// form gagal tersimpan tanpa pesan error apapun ke Owner. Cuma relevan untuk
+// baris LAMA yang tidak disentuh usernya; baris baru/yang diganti selalu
+// merujuk produk yang masih ada di dropdown (tidak mungkin ghost).
+let originalItemLookup = {};
+function originalItemKey(productId, waveId) {
+  return `${productId}::${waveId}`;
+}
+
+// Info tampilan (nama produk, label gelombang, harga satuan) untuk 1 baris
+// pesanan -- utamakan data produk yang LIVE (masih ada di katalog), baru
+// fallback ke data historis pesanan aslinya kalau produk/gelombangnya sudah
+// dihapus. isGhost=true menandakan baris ini pakai data historis (fallback).
+function resolveLineInfo(line) {
   const prod = getProduct(line.product_id);
   const wave = getWave(prod, line.wave_id);
+  if (wave) {
+    return { productName: prod.nama, waveLabel: wave.label, hargaSatuan: wave.harga, isGhost: false };
+  }
+  const fallback = originalItemLookup[originalItemKey(line.product_id, line.wave_id)];
+  if (fallback) {
+    return { productName: fallback.product_name, waveLabel: fallback.wave_label, hargaSatuan: fallback.harga_satuan, isGhost: true };
+  }
+  // Betul-betul tidak ada info sama sekali (kasus sangat jarang, mis. baris
+  // baru yang produknya keburu dihapus admin lain sebelum sempat disimpan)
+  // -- anggap harga 0 supaya tidak crash, bukan berarti aman/wajar.
+  return { productName: prod ? prod.nama : "(Produk sudah dihapus)", waveLabel: "(Gelombang sudah dihapus)", hargaSatuan: 0, isGhost: true };
+}
+
+function lineSubtotal(line) {
+  if (!line.product_id || !line.wave_id) return 0;
   const jumlah = Number(line.jumlah) || 0;
-  return wave ? wave.harga * jumlah : 0;
+  return resolveLineInfo(line).hargaSatuan * jumlah;
 }
 function grandTotal() {
   return lineItems.reduce((sum, l) => sum + lineSubtotal(l), 0);
@@ -295,13 +337,12 @@ function updateSummaryPanel() {
   const itemsHtml = validLines.length
     ? validLines
         .map((l) => {
-          const prod = getProduct(l.product_id);
-          const wave = getWave(prod, l.wave_id);
+          const info = resolveLineInfo(l);
           return `
         <div class="summary-item-row">
           <span style="color:var(--gray-700);">
-            ${escapeHtml(prod ? prod.nama : "")} <span style="color:var(--gray-400);">x${escapeHtml(l.jumlah)}</span>
-            <div style="font-size:11px; color:var(--brand-600);">${escapeHtml(wave ? wave.label : "")}</div>
+            ${escapeHtml(info.productName)} <span style="color:var(--gray-400);">x${escapeHtml(l.jumlah)}</span>
+            <div style="font-size:11px; color:var(--brand-600);">${escapeHtml(info.waveLabel)}</div>
           </span>
           <span style="font-weight:600; white-space:nowrap;">${formatRupiah(lineSubtotal(l))}</span>
         </div>`;
@@ -337,12 +378,21 @@ function stockWarningHtml(prod, jumlah) {
   return `<p style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:5px 8px; margin:6px 0 0;">⚠️ Melebihi stok tercatat untuk ${escapeHtml(prod.nama)} (stok: ${prod.stok}). Tetap bisa disimpan — cek dulu stok fisiknya kalau perlu.</p>`;
 }
 
+// Peringatan kalau baris ini merujuk produk/gelombang yang sudah dihapus
+// dari katalog (khusus mode Edit pesanan lama) -- jelaskan bahwa harga yang
+// dipakai adalah data historis pesanan ini, bukan harga yang aktif sekarang.
+function ghostLineWarningHtml(info) {
+  if (!info.isGhost) return "";
+  return `<p style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:5px 8px; margin:6px 0 0;">⚠️ "${escapeHtml(info.productName)} — ${escapeHtml(info.waveLabel)}" sudah dihapus dari katalog produk. Harga satuan memakai data terakhir yang tersimpan di pesanan ini (${formatRupiah(info.hargaSatuan)}). Kalau perlu, ganti ke produk yang masih aktif lewat dropdown di atas.</p>`;
+}
+
 function renderLineItems() {
   const wrap = document.getElementById("line-items");
   wrap.innerHTML = lineItems
     .map((line) => {
       const prod = getProduct(line.product_id);
       const wave = getWave(prod, line.wave_id);
+      const info = resolveLineInfo(line);
       const productOptions = products
         .map((p) => `<option value="${p.id}" ${p.id === line.product_id ? "selected" : ""}>${escapeHtml(p.nama)}</option>`)
         .join("");
@@ -363,13 +413,14 @@ function renderLineItems() {
           <input type="number" min="0" placeholder="Jumlah" value="${escapeHtml(line.jumlah)}" oninput="updateLine(${line.key}, 'jumlah', this.value)" />
         </div>
         <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:12.5px; color:var(--gray-500);">
-          <span>Harga satuan: ${wave ? formatRupiah(wave.harga) : "-"}</span>
+          <span>Harga satuan: ${line.product_id && line.wave_id ? formatRupiah(info.hargaSatuan) : "-"}</span>
           <span style="display:flex; gap:10px; align-items:center;">
             <strong id="subtotal-${line.key}" style="color:var(--gray-700);">Subtotal: ${formatRupiah(lineSubtotal(line))}</strong>
             ${lineItems.length > 1 ? `<a href="#" onclick="removeLine(${line.key}); return false;" style="color:var(--red-600);">Hapus</a>` : ""}
           </span>
         </div>
         <div id="stock-warning-${line.key}">${stockWarningHtml(prod, line.jumlah)}</div>
+        ${line.product_id && line.wave_id ? ghostLineWarningHtml(info) : ""}
       </div>`;
     })
     .join("");
@@ -484,17 +535,16 @@ async function handleSubmit(e) {
   }
 
   const itemsData = validLines.map((l) => {
-    const prod = getProduct(l.product_id);
-    const wave = getWave(prod, l.wave_id);
     const jumlah = Number(l.jumlah);
+    const info = resolveLineInfo(l);
     return {
       product_id: l.product_id,
-      product_name: prod.nama,
+      product_name: info.productName,
       wave_id: l.wave_id,
-      wave_label: wave.label,
-      harga_satuan: wave.harga,
+      wave_label: info.waveLabel,
+      harga_satuan: info.hargaSatuan,
       jumlah,
-      subtotal: wave.harga * jumlah,
+      subtotal: info.hargaSatuan * jumlah,
     };
   });
 
