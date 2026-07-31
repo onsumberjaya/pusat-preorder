@@ -450,6 +450,10 @@ async function handleSubmit(e) {
   }
 
   const total = grandTotal();
+  // Untuk mode edit, ini masih pakai editOrderData.paid_amount yang mungkin
+  // sudah basi (diambil saat form dibuka) -- ini cuma validasi cepat di sisi
+  // klien untuk feedback awal. Pengecekan yang SEBENARNYA (pakai data fresh
+  // dari server) terjadi di dalam transaksi saat submit, lihat handleSubmit().
   const paidAmount = editOrderId ? editOrderData.paid_amount || 0 : Number(document.getElementById("f-bayar").value) || 0;
   if (paidAmount > total) {
     alertBox.innerHTML = editOrderId
@@ -507,16 +511,34 @@ async function handleSubmit(e) {
 
   try {
     if (editOrderId) {
-      await db.collection("orders").doc(editOrderId).update({
-        tanggal,
-        nama_pembeli: namaPembeli,
-        alamat,
-        no_hp: noHp,
-        catatan,
-        items: itemsData,
-        total,
-        paid_amount: paidAmount,
-        status_bayar: computeStatusBayar(total, paidAmount),
+      const orderRef = db.collection("orders").doc(editOrderId);
+      await db.runTransaction(async (tx) => {
+        // Baca ulang paid_amount TERBARU dari server tepat saat menyimpan --
+        // bukan dari editOrderData yang sudah dibuka sejak form ini dibuka.
+        // Ini mencegah pembayaran baru yang dicatat rekan kerja (lewat
+        // Daftar Pesanan) selagi Owner masih mengedit pesanan yang sama
+        // jadi tertimpa/hilang dari paid_amount.
+        const freshDoc = await tx.get(orderRef);
+        if (!freshDoc.exists) {
+          throw new Error("Pesanan tidak ditemukan (mungkin baru saja dihapus).");
+        }
+        const freshPaidAmount = freshDoc.data().paid_amount || 0;
+        if (freshPaidAmount > total) {
+          throw new Error(
+            `Total pesanan baru (${formatRupiah(total)}) lebih kecil dari yang sudah dibayar SAAT INI (${formatRupiah(freshPaidAmount)}) -- kemungkinan ada pembayaran baru yang tercatat oleh rekan kerja selagi Anda mengedit. Muat ulang halaman ini dan cek Detail Pesanan dulu sebelum menyimpan lagi.`
+          );
+        }
+        tx.update(orderRef, {
+          tanggal,
+          nama_pembeli: namaPembeli,
+          alamat,
+          no_hp: noHp,
+          catatan,
+          items: itemsData,
+          total,
+          paid_amount: freshPaidAmount,
+          status_bayar: computeStatusBayar(total, freshPaidAmount),
+        });
       });
       showToast("Pesanan berhasil diperbarui.", "success");
       window.location.href = "pesanan.html";
