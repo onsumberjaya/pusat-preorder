@@ -4,6 +4,11 @@ let allCabangMap = {};
 let selectedIds = new Set();
 let currentProfile = null;
 
+// Kotak centang per pesanan disembunyikan sampai kotak centang di header
+// diklik pertama kali (baru muncul, belum memilih apa pun). Klik header
+// berikutnya berfungsi sebagai select all / deselect all seperti biasa.
+let checkboxesRevealed = false;
+
 // Default rentang tanggal saat halaman dibuka: 30 hari terakhir. Ini murni
 // supaya bacaan Firestore tidak membengkak seiring bertambahnya riwayat
 // pesanan -- untuk lihat data yang lebih lama, ubah saja tanggal "Dari".
@@ -288,6 +293,7 @@ function renderOrders() {
       </div>
     </div>
   `;
+  syncSelectAllCheckbox();
   updateBulkToolbar();
 }
 
@@ -321,7 +327,7 @@ function renderRow(o, isOwner, showCabangCol) {
 
   return `
     <tr>
-      <td><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
+      <td style="${checkboxesRevealed ? "" : "display:none;"}"><input type="checkbox" ${checked} onchange="toggleSelect('${o.id}', this.checked)" /></td>
       <td>
         <div style="font-weight:700; color:var(--gray-900);">${formatOrderNo(o)} ${janggal ? '<span title="Harga di pesanan ini berbeda dari harga gelombang yang berlaku sekarang" style="color:var(--red-600);">⚠️</span>' : ""}</div>
         <div style="font-size:11.5px; color:var(--gray-400); margin-top:1px;">${formatTanggal(o.tanggal)}</div>
@@ -352,13 +358,35 @@ function renderRow(o, isOwner, showCabangCol) {
 function toggleSelect(id, checked) {
   if (checked) selectedIds.add(id);
   else selectedIds.delete(id);
+  syncSelectAllCheckbox();
   updateBulkToolbar();
 }
-function toggleSelectAll(checked) {
+function toggleSelectAll(nativeChecked) {
+  // Klik pertama pada checkbox header: cuma menampilkan checkbox per item,
+  // belum memilih apa pun. Checkbox header dikembalikan ke kondisi kosong.
+  if (!checkboxesRevealed) {
+    checkboxesRevealed = true;
+    renderOrders();
+    return;
+  }
+  // Klik-klik berikutnya: select all / deselect all seperti biasa.
   const visible = getFilteredOrders();
-  if (checked) visible.forEach((o) => selectedIds.add(o.id));
+  if (nativeChecked) visible.forEach((o) => selectedIds.add(o.id));
   else visible.forEach((o) => selectedIds.delete(o.id));
   renderOrders();
+}
+function syncSelectAllCheckbox() {
+  const box = document.getElementById("select-all");
+  if (!box) return;
+  if (!checkboxesRevealed) {
+    box.checked = false;
+    box.indeterminate = false;
+    return;
+  }
+  const visible = getFilteredOrders();
+  const selectedVisible = visible.filter((o) => selectedIds.has(o.id)).length;
+  box.checked = visible.length > 0 && selectedVisible === visible.length;
+  box.indeterminate = selectedVisible > 0 && selectedVisible < visible.length;
 }
 function updateBulkToolbar() {
   const toolbar = document.getElementById("bulk-toolbar");
