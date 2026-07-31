@@ -4,16 +4,17 @@ let allCabangMap = {};
 let selectedIds = new Set();
 let unsubscribeOrders = null;
 
-// Tombol "Sembunyikan"/"Tampilkan" filter, khusus tampilan HP (tombolnya
-// sendiri disembunyikan di desktop lewat CSS .mobile-only).
+// Tombol Filter di sebelah judul halaman -- filter tersembunyi secara
+// default (di semua ukuran layar) dan baru muncul saat tombol ini diklik.
 function togglePesananFilterVisibility() {
   const toolbar = document.getElementById("pesanan-filter-toolbar");
   const btn = document.getElementById("pesanan-filter-toggle-btn");
   const hidden = toolbar.style.display === "none";
   toolbar.style.display = hidden ? "" : "none";
+  btn.className = hidden ? "btn-primary btn-sm" : "btn-secondary btn-sm";
   btn.innerHTML = hidden
-    ? '<i class="ph-bold ph-eye-slash"></i> Sembunyikan'
-    : '<i class="ph-bold ph-eye"></i> Tampilkan';
+    ? '<i class="ph-bold ph-x"></i> Tutup Filter'
+    : '<i class="ph-bold ph-funnel"></i> Filter';
 }
 
 function resolveWaveLabel(item) {

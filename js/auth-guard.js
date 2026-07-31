@@ -71,8 +71,19 @@ function watchSingleSession(uid) {
     });
 }
 
-function logout() {
+async function logout() {
   if (!confirm("Keluar dari aplikasi?")) return;
+  const uid = auth.currentUser && auth.currentUser.uid;
   localStorage.removeItem("device_session_id");
+  // Bersihkan juga active_session_id di server (bukan cuma lokal) -- harus
+  // dilakukan SEBELUM signOut(), karena begitu signOut() selesai, request.auth
+  // jadi null dan tidak lagi punya izin menulis ke dokumen users manapun.
+  if (uid) {
+    try {
+      await db.collection("users").doc(uid).update({ active_session_id: firebase.firestore.FieldValue.delete() });
+    } catch (e) {
+      // Diamkan -- kalaupun gagal, tetap lanjut logout seperti biasa.
+    }
+  }
   auth.signOut().then(() => (window.location.href = "index.html"));
 }

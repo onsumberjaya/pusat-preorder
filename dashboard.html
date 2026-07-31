@@ -15,33 +15,29 @@
   <div class="app-shell">
     <nav id="sidebar"></nav>
     <main class="content">
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-subtitle">Ringkasan performa penjualan preorder.</p>
+      <div class="page-header-row">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Ringkasan performa penjualan preorder.</p>
+        </div>
+        <button type="button" class="btn-secondary btn-sm" id="dash-filter-toggle-btn" onclick="toggleDashFilterVisibility()">
+          <i class="ph-bold ph-funnel"></i> Filter
+        </button>
+      </div>
 
-      <div class="card card-filter" style="margin-bottom:16px;">
-        <div class="card-heading" style="margin-bottom:12px; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="card-heading-icon"><i class="ph-bold ph-funnel"></i></span>
-            <h3 style="font-size:14px;">Filter Data</h3>
-          </div>
-          <button type="button" class="btn-secondary btn-sm mobile-only" id="dash-filter-toggle-btn" onclick="toggleDashFilterVisibility()">
-            <i class="ph-bold ph-eye-slash"></i> Sembunyikan
-          </button>
-        </div>
-        <div class="toolbar" id="dash-filter-toolbar">
-          <select id="filter-periode">
-            <option value="semua">Semua Waktu</option>
-            <option value="harian">Hari Ini</option>
-            <option value="mingguan">7 Hari Terakhir</option>
-            <option value="bulanan">Bulan Ini</option>
-            <option value="custom">Rentang Tanggal...</option>
-          </select>
-          <input type="date" id="filter-dari" style="display:none;" />
-          <span id="dash-to-label" style="display:none;">s/d</span>
-          <input type="date" id="filter-sampai" style="display:none;" />
-          <select id="filter-gelombang-dash"><option value="">Semua Gelombang</option></select>
-          <select id="filter-cabang-dash"><option value="">Semua Cabang</option></select>
-        </div>
+      <div class="card toolbar" id="dash-filter-toolbar" style="display:none; margin-bottom:16px;">
+        <select id="filter-periode">
+          <option value="semua">Semua Waktu</option>
+          <option value="harian">Hari Ini</option>
+          <option value="mingguan">7 Hari Terakhir</option>
+          <option value="bulanan">Bulan Ini</option>
+          <option value="custom">Rentang Tanggal...</option>
+        </select>
+        <input type="date" id="filter-dari" style="display:none;" />
+        <span id="dash-to-label" style="display:none;">s/d</span>
+        <input type="date" id="filter-sampai" style="display:none;" />
+        <select id="filter-gelombang-dash"><option value="">Semua Gelombang</option></select>
+        <select id="filter-cabang-dash"><option value="">Semua Cabang</option></select>
       </div>
 
       <div id="dashboard-content"><div class="loading-center"><div class="spinner"></div></div></div>
