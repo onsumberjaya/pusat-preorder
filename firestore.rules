@@ -92,10 +92,13 @@ service cloud.firestore {
         && data.status_bayar == computedStatusBayar(data.total, data.paid_amount);
     }
 
-    // Field pesanan yang boleh disentuh karyawan (bukan Owner) saat update:
-    // catat pembayaran (paid_amount/status_bayar) & tandai diambil
-    // (is_diambil/tanggal_ambil). Di luar field ini -- termasuk items, total,
-    // nama_pembeli, alamat -- WAJIB lewat Owner.
+    // Field pesanan yang boleh disentuh karyawan/admin kasir (bukan Owner)
+    // saat update: (1) catat pembayaran (paid_amount/status_bayar) & tandai
+    // diambil (is_diambil/tanggal_ambil), ATAU (2) "Ubah Jumlah Pesanan" --
+    // fitur terbatas di UI yang HANYA memungkinkan mengubah jumlah item
+    // (bukan produk/gelombang/harga satuan/data pembeli), makanya di sini
+    // yang boleh berubah cuma items/total/status_bayar/edit_log sekaligus.
+    // nama_pembeli/alamat/no_hp/catatan tetap WAJIB lewat Owner.
     // paid_amount juga WAJIB tidak boleh turun untuk role selain Owner --
     // tanpa ini, seseorang yang paham DevTools/console browser bisa memanggil
     // Firestore langsung (bukan lewat tampilan aplikasi, yang cuma bisa
@@ -105,10 +108,22 @@ service cloud.firestore {
     // "payments" tetap ada & tidak bisa disentuh non-Owner, tapi tanpa
     // aturan ini paid_amount di dokumen pesanan bisa tidak sinkron dengan
     // riwayat itu).
+    //
+    // CATATAN: sama seperti isValidOrderShape() di atas, rules ini TIDAK
+    // memvalidasi item-per-item bahwa cuma field "jumlah"/"subtotal" yang
+    // berubah (bukan product_id/wave_id/harga_satuan) -- Security Rules
+    // tidak punya loop atas list yang panjangnya dinamis. Pembatasan
+    // sebenarnya ada di UI (form "Ubah Jumlah" cuma punya input jumlah,
+    // field lain read-only), dimitigasi dengan cara yang sama seperti risiko
+    // "total" yang sudah diterima sebelumnya: DETEKSI lewat hasOrderAnomaly()
+    // + jejak audit di edit_log, bukan dicegah di level server. Ukuran array
+    // (jumlah baris item) tetap dikunci -- tidak boleh nambah/hapus baris.
     function isEmployeeAllowedOrderEdit(before, after) {
-      return after.diff(before).affectedKeys()
-        .hasOnly(['paid_amount', 'status_bayar', 'is_diambil', 'tanggal_ambil'])
-        && after.get('paid_amount', 0) >= before.get('paid_amount', 0);
+      let keys = after.diff(before).affectedKeys();
+      return (keys.hasOnly(['paid_amount', 'status_bayar', 'is_diambil', 'tanggal_ambil'])
+              && after.get('paid_amount', 0) >= before.get('paid_amount', 0))
+          || (keys.hasOnly(['items', 'total', 'status_bayar', 'edit_log'])
+              && after.items.size() == before.items.size());
     }
 
     // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.
