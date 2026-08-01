@@ -581,6 +581,11 @@ table tbody tr:hover { background: var(--gray-50); }
 .nota-dm .info-table td:first-child { width: 15mm; white-space: nowrap; }
 .nota-dm hr { border: none; border-top: 1.5px solid #000; margin: 4px 0; }
 
+.nota-mode-a4 .nota-dm { display: none; }
+.nota-mode-a4 .nota-a4 { display: block; }
+.nota-mode-dm .nota-a4 { display: none; }
+.nota-mode-dm .nota-dm { display: block; }
+
 @media print {
   .nota-mode-a4 .nota-dm { display: none; }
   .nota-mode-a4 .nota-a4 { display: block; }
