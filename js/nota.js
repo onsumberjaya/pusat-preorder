@@ -91,24 +91,18 @@ function renderNota() {
         <p style="margin:2px 0;">${escapeHtml(notaToko.no_hp || "")}</p>
         <p style="margin:6px 0 0; font-weight:700; letter-spacing:1px;">NOTA PREORDER</p>
       </div>
-      <table style="width:100%; table-layout:fixed; border-collapse:collapse; margin-bottom:14px;">
-        <tr>
-          <td style="width:50%; vertical-align:top; padding:0;">
-            <table style="border-collapse:collapse;">
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. Nota</td><td style="padding:1px 0;">: ${formatOrderNo(o)}</td></tr>
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Nama</td><td style="padding:1px 0;">: ${escapeHtml(o.nama_pembeli)}</td></tr>
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">Alamat</td><td style="padding:1px 0;">: ${escapeHtml(o.alamat || "-")}</td></tr>
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. HP</td><td style="padding:1px 0;">: ${escapeHtml(o.no_hp || "-")}</td></tr>
-            </table>
-          </td>
-          <td style="width:50%; vertical-align:top; text-align:right; padding:0;">
-            <table style="border-collapse:collapse; margin-left:auto;">
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; text-align:left;">Tanggal</td><td style="padding:1px 0; text-align:left;">: ${formatTanggal(o.tanggal)}</td></tr>
-              <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; text-align:left;">Status</td><td style="padding:1px 0; text-align:left;">: ${STATUS_BAYAR_LABEL[o.status_bayar]}</td></tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+      <div style="position:relative; margin-bottom:14px; min-height:70px;">
+        <table style="border-collapse:collapse;">
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. Nota</td><td style="padding:1px 0;">: ${formatOrderNo(o)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Nama</td><td style="padding:1px 0;">: ${escapeHtml(o.nama_pembeli)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">Alamat</td><td style="padding:1px 0;">: ${escapeHtml(o.alamat || "-")}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. HP</td><td style="padding:1px 0;">: ${escapeHtml(o.no_hp || "-")}</td></tr>
+        </table>
+        <table style="border-collapse:collapse; position:absolute; top:0; right:0;">
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Tanggal</td><td style="padding:1px 0;">: ${formatTanggal(o.tanggal)}</td></tr>
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Status</td><td style="padding:1px 0;">: ${STATUS_BAYAR_LABEL[o.status_bayar]}</td></tr>
+        </table>
+      </div>
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr style="border-bottom:1px solid #000;">
