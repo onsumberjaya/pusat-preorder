@@ -509,6 +509,13 @@ async function handleSubmit(e) {
     return;
   }
 
+  // Nonaktifkan tombol Simpan dari sini (sebelum modal konfirmasi di bawah
+  // ini muncul, bukan sesudahnya) -- supaya tidak ada celah waktu di mana
+  // tombolnya masih bisa diklik lagi sebelum modal benar-benar tertutup.
+  const btn = document.getElementById("submit-btn");
+  const btnTextAsal = btn.textContent;
+  btn.disabled = true;
+
   // Pesanan baru dengan bayar 0 atau kurang dari total = nota tempo/belum
   // lunas -- beri jendela konfirmasi (di tengah layar) supaya tidak kelewatan
   // tanpa sadar sebelum benar-benar tersimpan.
@@ -527,7 +534,11 @@ async function handleSubmit(e) {
              <div style="display:flex; justify-content:space-between; color:var(--red-600);"><span>Sisa / Tempo</span><strong>${formatRupiah(sisaBelum)}</strong></div>
            </div>`;
     const lanjut = await showConfirmModal(bodyHtml, { okLabel: "Lanjutkan Simpan" });
-    if (!lanjut) return;
+    if (!lanjut) {
+      btn.disabled = false;
+      btn.textContent = btnTextAsal;
+      return;
+    }
   }
 
   const itemsData = validLines.map((l) => {
@@ -544,8 +555,6 @@ async function handleSubmit(e) {
     };
   });
 
-  const btn = document.getElementById("submit-btn");
-  btn.disabled = true;
   btn.textContent = "Menyimpan...";
 
   const tanggal = new Date(document.getElementById("f-tanggal").value);

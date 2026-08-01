@@ -47,9 +47,18 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/utils.js"></script>
   <script>
-    // Kalau sudah login, langsung lempar ke daftar pesanan.
+    // Kalau sudah login (mis. buka index.html lagi padahal sesinya masih
+    // berlaku), langsung lempar ke daftar pesanan -- TAPI jangan sampai ini
+    // ikut terpicu di tengah proses login yang baru saja dikirim (lihat
+    // "loggingIn" di bawah), karena listener ini juga otomatis ikut nyala
+    // begitu login berhasil, padahal proses catat sesi (active_session_id)
+    // belum tentu selesai duluan. Kalau dibiarkan balapan, halaman bisa
+    // keburu pindah sebelum active_session_id sempat tersimpan ke server --
+    // efeknya orang yang baru saja login malah langsung dianggap "sesi
+    // asing" oleh perangkatnya sendiri begitu sampai di halaman berikutnya.
+    let loggingIn = false;
     auth.onAuthStateChanged((user) => {
-      if (user) window.location.href = "pesanan.html";
+      if (user && !loggingIn) window.location.href = "pesanan.html";
     });
 
     document.getElementById("login-form").addEventListener("submit", async (e) => {
@@ -61,6 +70,7 @@
       alertBox.innerHTML = "";
       btn.disabled = true;
       btn.textContent = "Memproses...";
+      loggingIn = true;
       try {
         const cred = await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
         // Fitur "1 sesi login per perangkat": catat ID sesi perangkat ini,
@@ -73,6 +83,7 @@
         await db.collection("users").doc(cred.user.uid).update({ active_session_id: sessionId });
         window.location.href = "pesanan.html";
       } catch (err) {
+        loggingIn = false;
         alertBox.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
         btn.disabled = false;
         btn.textContent = "Masuk";
