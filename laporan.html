@@ -54,6 +54,11 @@
           <button class="btn-secondary" onclick="applyReportFilter()">Terapkan Filter</button>
           <button class="btn-primary" onclick="exportExcel()">⬇️ Export Excel</button>
           <button class="btn-primary" onclick="exportPdf()">⬇️ Export PDF</button>
+          <span id="nota-check-toggle-wrap" style="display:none;">
+            <button type="button" class="btn-secondary" id="nota-check-toggle-btn" onclick="toggleNotaCheckTools()">
+              <i class="ph-bold ph-wrench"></i> Alat Lanjutan
+            </button>
+          </span>
           <label style="font-size:12.5px; color:var(--gray-500); display:flex; align-items:center; gap:6px; margin-left:auto;">
             Tampilkan
             <select id="lap-pagesize" style="min-width:auto;">
@@ -65,16 +70,11 @@
           </label>
         </div>
 
-        <div id="nota-check-toggle-wrap" style="display:none; border-top:1px solid var(--gray-100); margin-top:14px; padding-top:10px;">
-          <button type="button" class="btn-secondary btn-sm" id="nota-check-toggle-btn" onclick="toggleNotaCheckTools()">
-            <i class="ph-bold ph-wrench"></i> Alat Lanjutan
-          </button>
-          <div id="nota-check-tools" style="display:none; margin-top:10px;">
-            <p style="font-size:12.5px; color:var(--gray-500); margin:0 0 8px;">Kedua alat ini butuh membaca SELURUH riwayat pesanan (bukan cuma rentang tanggal di atas), jadi dibuat manual -- jalankan sesekali saja, tidak perlu tiap buka halaman ini.</p>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-secondary btn-sm" onclick="checkDuplicateNotaNumbers()">Cek Nomor Nota Bentrok (Riwayat Penuh)</button>
-              <button class="btn-secondary btn-sm" onclick="checkNamaAlamatFormat()">Cek Nama & Alamat Belum Rapi (Riwayat Penuh)</button>
-            </div>
+        <div id="nota-check-tools" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--gray-100);">
+          <p style="font-size:12.5px; color:var(--gray-500); margin:0 0 8px;">Kedua alat ini butuh membaca SELURUH riwayat pesanan (bukan cuma rentang tanggal di atas), jadi dibuat manual -- jalankan sesekali saja, tidak perlu tiap buka halaman ini.</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-secondary btn-sm" onclick="checkDuplicateNotaNumbers()">Cek Nomor Nota Bentrok (Riwayat Penuh)</button>
+            <button class="btn-secondary btn-sm" onclick="checkNamaAlamatFormat()">Cek Nama & Alamat Belum Rapi (Riwayat Penuh)</button>
           </div>
         </div>
       </div>
