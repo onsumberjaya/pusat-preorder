@@ -5,6 +5,7 @@ let selectedIds = new Set();
 let currentProfile = null;
 let currentPage = 1;
 let pageSize = 20;
+let tokoProfil = { nama: "Toko Kami" }; // dipakai di teks pesan WA, dimuat sekali di onAuthReady
 
 // Kotak centang per pesanan disembunyikan sampai kotak centang di header
 // diklik pertama kali (baru muncul, belum memilih apa pun). Klik header
@@ -100,6 +101,16 @@ function applyQuickFilter(type) {
 window.onAuthReady = function (profile) {
   currentProfile = profile;
   listenProductFilters();
+
+  // Nama toko buat teks pesan WA -- dibaca sekali saja (bukan realtime,
+  // profil toko jarang berubah dan ini bukan data kritis).
+  db.collection("config")
+    .doc("toko")
+    .get()
+    .then((doc) => {
+      if (doc.exists && doc.data().nama) tokoProfil = doc.data();
+    })
+    .catch(() => {}); // diamkan -- cuma dipakai sebagai teks pelengkap pesan WA
 
   // Kalau datang dari banner "Pesanan Terdeteksi Janggal" di Dashboard,
   // langsung nyalakan filter anomali -- dan JANGAN batasi ke 30 hari
@@ -495,13 +506,76 @@ function renderRow(o, idx, isOwner, showCabangCol) {
       <td style="white-space:nowrap;">
         <div style="display:flex; gap:6px;">
           <button class="icon-btn" title="Lihat Detail / Catat Bayar" onclick="openDetailModal('${o.id}')"><i class="ph ph-eye"></i></button>
+          ${
+            !(o.status_bayar === "lunas" && o.is_diambil) && o.no_hp
+              ? `<button class="icon-btn" title="Kirim WA ke Pembeli" onclick="kirimWaSmart('${o.id}')" style="color:var(--brand-600);"><i class="ph-bold ph-whatsapp-logo"></i></button>`
+              : ""
+          }
           <button class="icon-btn" title="Cetak Nota" onclick="window.open('nota.html?id=${o.id}','_blank')"><i class="ph ph-printer"></i></button>
         </div>
       </td>
     </tr>`;
 }
 
-// ---------- Seleksi & Bulk Action ----------
+// ---------- Notifikasi WhatsApp ("Kirim WA" -- lihat catatan di js/utils.js
+// soal kenapa ini bukan kirim otomatis penuh lewat API pihak ketiga) ----------
+function ringkasProduk(order) {
+  return (order.items || []).map((it) => `${it.product_name} x${it.jumlah}`).join(", ");
+}
+
+function pesanWaSiapDiambil(order) {
+  const sisa = order.total - (order.paid_amount || 0);
+  return (
+    `Halo ${order.nama_pembeli} 👋\n\n` +
+    `Pesanan preorder Anda di *${tokoProfil.nama}* sudah *siap diambil*.\n\n` +
+    `No. Nota: ${formatOrderNo(order)}\n` +
+    `Produk: ${ringkasProduk(order)}\n` +
+    `Total: ${formatRupiah(order.total)}` +
+    (sisa > 0 ? `\nSisa Bayar: ${formatRupiah(sisa)} (mohon dilunasi saat pengambilan)` : "") +
+    `\n\nSilakan diambil di jam operasional toko ya. Terima kasih! 🙏`
+  );
+}
+
+function pesanWaReminderTagihan(order) {
+  const sisa = order.total - (order.paid_amount || 0);
+  return (
+    `Halo ${order.nama_pembeli} 👋\n\n` +
+    `Ini pengingat untuk pesanan Anda di *${tokoProfil.nama}* yang masih ada tunggakan pembayaran.\n\n` +
+    `No. Nota: ${formatOrderNo(order)}\n` +
+    `Total Tagihan: ${formatRupiah(order.total)}\n` +
+    `Sudah Dibayar: ${formatRupiah(order.paid_amount || 0)}\n` +
+    `Sisa: ${formatRupiah(sisa)}\n\n` +
+    `Mohon untuk melunasi secepatnya ya. Terima kasih! 🙏`
+  );
+}
+
+function kirimWaSiapDiambil(orderId) {
+  const order = allOrders.find((o) => o.id === orderId);
+  if (!order) return;
+  openWaLink(order.no_hp, pesanWaSiapDiambil(order));
+}
+
+function kirimWaReminderTagihan(orderId) {
+  const order = allOrders.find((o) => o.id === orderId);
+  if (!order) return;
+  openWaLink(order.no_hp, pesanWaReminderTagihan(order));
+}
+
+// Tombol WA cepat di baris tabel (tanpa buka Detail dulu) -- otomatis pilih
+// pesan yang paling relevan: reminder tagihan kalau belum lunas, kalau
+// sudah lunas tapi belum diambil berarti pesan "siap diambil". Kalau
+// keduanya sudah beres (lunas & sudah diambil), tombolnya disembunyikan.
+function kirimWaSmart(orderId) {
+  const order = allOrders.find((o) => o.id === orderId);
+  if (!order) return;
+  if (order.status_bayar !== "lunas") {
+    openWaLink(order.no_hp, pesanWaReminderTagihan(order));
+  } else {
+    openWaLink(order.no_hp, pesanWaSiapDiambil(order));
+  }
+}
+
+
 function exitSelectionMode() {
   checkboxesRevealed = false;
   selectedIds.clear();
@@ -679,6 +753,23 @@ function renderDetailModal(order) {
       <div><i class="ph ph-map-pin" style="color:var(--gray-400);"></i> ${escapeHtml(order.alamat || "-")}</div>
       ${order.catatan ? `<div><i class="ph ph-note" style="color:var(--gray-400);"></i> ${escapeHtml(order.catatan)}</div>` : ""}
     </div>
+    ${
+      order.no_hp
+        ? `
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      ${
+        !order.is_diambil
+          ? `<button class="btn-secondary btn-sm" style="flex:1; justify-content:center; color:var(--brand-700); border-color:var(--brand-300);" onclick="kirimWaSiapDiambil('${order.id}')"><i class="ph-bold ph-whatsapp-logo"></i> WA: Siap Diambil</button>`
+          : ""
+      }
+      ${
+        sisa > 0
+          ? `<button class="btn-secondary btn-sm" style="flex:1; justify-content:center; color:var(--brand-700); border-color:var(--brand-300);" onclick="kirimWaReminderTagihan('${order.id}')"><i class="ph-bold ph-whatsapp-logo"></i> WA: Reminder Tagihan</button>`
+          : ""
+      }
+    </div>`
+        : ""
+    }
     <table style="margin-bottom:10px;">
       <tbody>${itemRows}</tbody>
     </table>

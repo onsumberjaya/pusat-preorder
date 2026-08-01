@@ -155,6 +155,32 @@ function computeStatusBayar(total, paid) {
   return "cicilan";
 }
 
+// ---------- Notifikasi WhatsApp (tombol "Kirim WA", bukan otomatis penuh) ----------
+// Sengaja pakai link wa.me (buka WhatsApp Web/App dengan nomor & teks pesan
+// sudah terisi, staf tinggal klik kirim) -- BUKAN kirim otomatis lewat API
+// pihak ketiga (Fonnte/WA Business API dst). Alasannya: app ini murni
+// HTML/JS statis di GitHub Pages tanpa server/backend, jadi API key/token
+// WhatsApp pihak ketiga TIDAK BISA disimpan dengan aman di kode -- siapa pun
+// bisa lihat lewat "View Source"/DevTools dan mencuri tokennya. Kirim
+// otomatis penuh butuh backend terpisah (Cloud Functions/Cloudflare Worker
+// dst) yang di luar cakupan versi gratis ini.
+function toWaNumber(noHp) {
+  let n = String(noHp || "").replace(/[^0-9]/g, "");
+  if (!n) return "";
+  if (n.startsWith("0")) n = "62" + n.slice(1);
+  else if (!n.startsWith("62")) n = "62" + n;
+  return n;
+}
+
+function openWaLink(noHp, message) {
+  const number = toWaNumber(noHp);
+  if (!number) {
+    showToast("Nomor HP pembeli tidak tersedia/tidak valid, tidak bisa buka WhatsApp.", "error");
+    return;
+  }
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
+}
+
 // Cari nama gelombang (wave label) sebuah item pesanan dari data produk yang
 // berlaku SEKARANG. Kalau produk/gelombangnya sudah dihapus, pakai label
 // yang tersimpan di pesanan sebagai fallback.
