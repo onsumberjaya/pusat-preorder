@@ -46,12 +46,21 @@ window.onAuthReady = function (profile) {
   // dari itu dan jadi tidak kelihatan kalau dibatasi.
   const params = new URLSearchParams(window.location.search);
   const fromAnomaliLink = params.get("anomali") === "1";
+  const cariDariTopbar = params.get("cari") || "";
 
-  document.getElementById("filter-dari").value = fromAnomaliLink ? "" : defaultDariTanggal();
-  document.getElementById("filter-sampai").value = fromAnomaliLink ? "" : new Date().toISOString().slice(0, 10);
+  // Pencarian dari bar cari global (topbar) juga sengaja tidak dibatasi 30
+  // hari terakhir -- orang yang cari lewat situ biasanya cari 1 nota
+  // spesifik, bisa saja dari bulan lalu, jangan sampai tidak ketemu gara-gara
+  // kena batas tanggal default.
+  document.getElementById("filter-dari").value = fromAnomaliLink || cariDariTopbar ? "" : defaultDariTanggal();
+  document.getElementById("filter-sampai").value = fromAnomaliLink || cariDariTopbar ? "" : new Date().toISOString().slice(0, 10);
   if (fromAnomaliLink) {
     document.getElementById("filter-harga-janggal").checked = true;
     document.getElementById("anomali-chip").classList.add("active");
+  }
+  if (cariDariTopbar) {
+    document.getElementById("filter-search").value = cariDariTopbar;
+    togglePesananFilterVisibility(); // buka panel filter biar kelihatan lagi cari apa
   }
   loadOrders();
 

@@ -65,21 +65,62 @@ function renderTopbar(profile) {
       <button class="topbar-toggle-btn" onclick="toggleMenu()" title="Sembunyikan/Tampilkan menu"><i class="ph-bold ph-list"></i></button>
       <span class="logo"><span class="logo-icon"><i class="ph-bold ph-plant"></i></span>Benih Preorder</span>
     </div>
-    <div class="account-menu">
-      <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
-        <span class="avatar">${escapeHtml(initials)}</span>
-        <span>${displayName || "Akun"}</span>
-        <i class="ph ph-caret-down" style="color:var(--gray-400); font-size:11px;"></i>
-      </button>
-      <div class="account-menu-panel" id="account-menu-panel">
-        <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
-          <span id="topbar-role-text">${escapeHtml(roleLabel(profile.role))}</span>${displayName ? " · " + displayName : ""}
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="topbar-toggle-btn" onclick="toggleGlobalSearch()" title="Cari pesanan"><i class="ph-bold ph-magnifying-glass"></i></button>
+      <div class="account-menu">
+        <button type="button" class="account-menu-btn" onclick="toggleAccountMenu(event)">
+          <span class="avatar">${escapeHtml(initials)}</span>
+          <span>${displayName || "Akun"}</span>
+          <i class="ph ph-caret-down" style="color:var(--gray-400); font-size:11px;"></i>
+        </button>
+        <div class="account-menu-panel" id="account-menu-panel">
+          <div style="padding:8px 12px; font-size:12px; color:var(--gray-500); border-bottom:1px solid var(--gray-100); margin-bottom:4px;">
+            <span id="topbar-role-text">${escapeHtml(roleLabel(profile.role))}</span>${displayName ? " · " + displayName : ""}
+          </div>
+          <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
+          <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
         </div>
-        <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
-        <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
       </div>
     </div>
   `;
+
+  ensureGlobalSearchBar();
+}
+
+// Bar pencarian global -- bisa dibuka dari halaman manapun (bukan cuma di
+// Daftar Pesanan), lalu diarahkan ke pesanan.html dengan hasil filter
+// pencarian langsung terisi otomatis.
+function ensureGlobalSearchBar() {
+  if (document.getElementById("global-search-bar")) return;
+  const bar = document.createElement("div");
+  bar.id = "global-search-bar";
+  bar.className = "global-search-bar";
+  bar.style.display = "none";
+  bar.innerHTML = `
+    <form onsubmit="submitGlobalSearch(event)" style="display:flex; gap:8px; align-items:center; max-width:640px; margin:0 auto;">
+      <i class="ph-bold ph-magnifying-glass" style="color:var(--gray-400); font-size:16px;"></i>
+      <input type="text" id="global-search-input" placeholder="Cari pesanan: nama pembeli / no HP / no nota..." style="border:none; box-shadow:none; padding:6px 0;" />
+      <button type="button" class="topbar-toggle-btn" onclick="toggleGlobalSearch()" title="Tutup"><i class="ph-bold ph-x"></i></button>
+    </form>
+  `;
+  document.body.appendChild(bar);
+}
+
+function toggleGlobalSearch() {
+  ensureGlobalSearchBar();
+  const bar = document.getElementById("global-search-bar");
+  const opening = bar.style.display === "none";
+  bar.style.display = opening ? "block" : "none";
+  if (opening) {
+    document.getElementById("global-search-input").focus();
+  }
+}
+
+function submitGlobalSearch(e) {
+  e.preventDefault();
+  const q = document.getElementById("global-search-input").value.trim();
+  if (!q) return;
+  window.location.href = "pesanan.html?cari=" + encodeURIComponent(q);
 }
 
 // Isi nama cabang di sebelah label role (kalau user ini Karyawan cabang),
