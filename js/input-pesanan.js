@@ -460,6 +460,25 @@ function updateTotalDisplay() {
   updateSummaryPanel();
 }
 
+// Riwayat perubahan (mini log) -- ringkasan singkat apa yang berubah tiap
+// kali Owner edit pesanan (item/total/data pembeli), buat ditampilkan di
+// Detail Pesanan. Berguna untuk audit kalau ada beda pendapat soal "siapa
+// yang ubah apa", apalagi sekarang sudah multi-cabang & multi-akun.
+function buildEditSummary(oldData, newData) {
+  const parts = [];
+  if ((oldData.total || 0) !== newData.total) {
+    parts.push(`Total: ${formatRupiah(oldData.total || 0)} → ${formatRupiah(newData.total)}`);
+  }
+  const oldItemsKey = JSON.stringify((oldData.items || []).map((it) => [it.product_id, it.wave_id, it.jumlah]));
+  const newItemsKey = JSON.stringify((newData.items || []).map((it) => [it.product_id, it.wave_id, it.jumlah]));
+  if (oldItemsKey !== newItemsKey) parts.push("Item pesanan diubah");
+  if ((oldData.nama_pembeli || "") !== newData.nama_pembeli) parts.push("Nama pembeli diubah");
+  if ((oldData.alamat || "") !== newData.alamat) parts.push("Alamat diubah");
+  if ((oldData.no_hp || "") !== newData.no_hp) parts.push("No. HP diubah");
+  if ((oldData.catatan || "") !== newData.catatan) parts.push("Catatan diubah");
+  return parts.length ? parts.join(", ") : "Pesanan disimpan ulang (tidak ada perubahan data terdeteksi)";
+}
+
 async function handleSubmit(e) {
   e.preventDefault();
   const alertBox = document.getElementById("order-form-alert");
@@ -583,6 +602,10 @@ async function handleSubmit(e) {
             `Total pesanan baru (${formatRupiah(total)}) lebih kecil dari yang sudah dibayar SAAT INI (${formatRupiah(freshPaidAmount)}) -- kemungkinan ada pembayaran baru yang tercatat oleh rekan kerja selagi Anda mengedit. Muat ulang halaman ini dan cek Detail Pesanan dulu sebelum menyimpan lagi.`
           );
         }
+        const freshOrder = freshDoc.data();
+        const newDataForLog = { nama_pembeli: namaPembeli, alamat, no_hp: noHp, catatan, items: itemsData, total };
+        const ringkasan = buildEditSummary(freshOrder, newDataForLog);
+
         tx.update(orderRef, {
           tanggal,
           nama_pembeli: namaPembeli,
@@ -593,6 +616,14 @@ async function handleSubmit(e) {
           total,
           paid_amount: freshPaidAmount,
           status_bayar: computeStatusBayar(total, freshPaidAmount),
+          // Dipakai FieldValue.arrayUnion() (bukan serverTimestamp) karena
+          // Firestore tidak mengizinkan sentinel serverTimestamp di dalam array.
+          edit_log: firebase.firestore.FieldValue.arrayUnion({
+            by: profile.uid,
+            by_name: profile.full_name || profile.username || "-",
+            at: new Date(),
+            ringkasan,
+          }),
         });
       });
       showToast("Pesanan berhasil diperbarui.", "success");

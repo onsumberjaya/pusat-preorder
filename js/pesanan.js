@@ -36,6 +36,67 @@ function togglePesananFilterVisibility() {
 // janggal) sekarang di js/utils.js supaya tidak disalin-tempel 3x di tiap
 // halaman (Daftar Pesanan, Laporan, Dashboard).
 
+// ---------- Filter Cepat / Preset ----------
+// 2 kondisi yang paling sering dicek kasir sehari-hari: pesanan yang belum
+// diambil minggu ini (buat siapin barangnya), dan yang belum lunas (buat
+// tagih). Sengaja cuma 1 klik -- daripada isi filter manual tiap kali.
+function startEndOfThisWeek() {
+  const now = new Date();
+  const day = now.getDay(); // 0 = Minggu
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { senin: monday.toISOString().slice(0, 10), minggu: sunday.toISOString().slice(0, 10) };
+}
+
+function clearQuickFilterActive() {
+  const a = document.getElementById("quick-chip-belum-diambil");
+  const b = document.getElementById("quick-chip-belum-lunas");
+  if (a) a.classList.remove("active");
+  if (b) b.classList.remove("active");
+}
+
+function applyQuickFilter(type) {
+  currentPage = 1;
+
+  // Bersihkan filter lain dulu supaya presetnya "bersih" (tidak nyampur
+  // dengan filter manual yang mungkin masih menyala dari sebelumnya).
+  document.getElementById("filter-search").value = "";
+  document.getElementById("filter-produk").value = "";
+  document.getElementById("filter-gelombang").innerHTML = '<option value="">Semua Gelombang</option>';
+  document.getElementById("filter-harga-janggal").checked = false;
+  document.getElementById("anomali-chip").classList.remove("active");
+  const cabangFilterEl = document.getElementById("filter-cabang");
+  if (cabangFilterEl) cabangFilterEl.value = "";
+  document.getElementById("filter-bayar").value = "";
+  document.getElementById("filter-ambil").value = "";
+
+  if (type === "belum-diambil-minggu-ini") {
+    const { senin, minggu } = startEndOfThisWeek();
+    document.getElementById("filter-dari").value = senin;
+    document.getElementById("filter-sampai").value = minggu;
+    document.getElementById("filter-ambil").value = "belum";
+  } else if (type === "belum-lunas") {
+    // Sengaja TIDAK dibatasi tanggal (dikosongkan) -- tunggakan lama yang
+    // sudah lewat 30 hari terakhir tetap harus kelihatan, bukan cuma yang baru.
+    document.getElementById("filter-dari").value = "";
+    document.getElementById("filter-sampai").value = "";
+    document.getElementById("filter-bayar").value = "belum_lunas";
+  }
+
+  // Buka panel filter biar kelihatan kondisi apa yang lagi aktif.
+  document.getElementById("pesanan-filter-toolbar").style.display = "";
+  document.getElementById("pesanan-filter-toggle-btn").innerHTML = '<i class="ph-bold ph-eye-slash"></i> Sembunyikan Filter';
+
+  clearQuickFilterActive();
+  const chip = document.getElementById(type === "belum-diambil-minggu-ini" ? "quick-chip-belum-diambil" : "quick-chip-belum-lunas");
+  if (chip) chip.classList.add("active");
+
+  loadOrders(); // rentang tanggal berubah -> query ke Firestore harus diulang
+}
+
 window.onAuthReady = function (profile) {
   currentProfile = profile;
   listenProductFilters();
@@ -70,39 +131,48 @@ window.onAuthReady = function (profile) {
 
   document.getElementById("filter-dari").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     loadOrders();
   });
   document.getElementById("filter-sampai").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     loadOrders();
   });
   document.getElementById("filter-search").addEventListener("input", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     debounceRender();
   });
   document.getElementById("filter-cabang").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     renderOrders();
   });
   document.getElementById("filter-produk").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     updateGelombangFilterOptions();
     renderOrders();
   });
   document.getElementById("filter-gelombang").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     renderOrders();
   });
   document.getElementById("filter-bayar").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     renderOrders();
   });
   document.getElementById("filter-ambil").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     renderOrders();
   });
   document.getElementById("filter-harga-janggal").addEventListener("change", () => {
     currentPage = 1;
+    clearQuickFilterActive();
     renderOrders();
   });
   document.getElementById("filter-pagesize").addEventListener("change", (e) => {
@@ -268,7 +338,8 @@ function getFilteredOrders() {
     }
     if (produkId && !(o.items || []).some((it) => it.product_id === produkId)) return false;
     if (gelombangLabel && !(o.items || []).some((it) => resolveWaveLabel(it, allProductsMap) === gelombangLabel)) return false;
-    if (statusBayar && o.status_bayar !== statusBayar) return false;
+    if (statusBayar === "belum_lunas" && o.status_bayar === "lunas") return false;
+    if (statusBayar && statusBayar !== "belum_lunas" && o.status_bayar !== statusBayar) return false;
     if (statusAmbil === "sudah" && !o.is_diambil) return false;
     if (statusAmbil === "belum" && o.is_diambil) return false;
     if (document.getElementById("filter-harga-janggal").checked && !hasOrderAnomaly(o, allProductsMap)) return false;
@@ -278,6 +349,7 @@ function getFilteredOrders() {
 
 function resetFilters() {
   currentPage = 1;
+  clearQuickFilterActive();
   document.getElementById("filter-search").value = "";
   const cabangFilterEl = document.getElementById("filter-cabang");
   if (cabangFilterEl) cabangFilterEl.value = "";
@@ -639,6 +711,8 @@ function renderDetailModal(order) {
     <div style="font-weight:600; font-size:13.5px; margin-bottom:6px;">Riwayat Pembayaran</div>
     <div id="payment-history"><p style="color:var(--gray-400); font-size:13px;">Memuat...</p></div>
 
+    ${renderEditLogSection(order)}
+
     ${
       isOwner
         ? `
@@ -703,6 +777,34 @@ function renderDetailModal(order) {
       }
     });
   }
+}
+
+// Riwayat perubahan (mini log) -- ditulis oleh js/input-pesanan.js tiap kali
+// item/total/data pembeli diubah lewat Edit Pesanan. Cuma dibaca dari field
+// edit_log yang sudah ada di dokumen order (tidak perlu baca subcollection
+// terpisah), jadi tidak nambah biaya baca Firestore.
+function renderEditLogSection(order) {
+  const log = order.edit_log || [];
+  if (log.length === 0) return "";
+  const rows = [...log]
+    .sort((a, b) => {
+      const ta = a.at && a.at.toDate ? a.at.toDate() : new Date(a.at);
+      const tb = b.at && b.at.toDate ? b.at.toDate() : new Date(b.at);
+      return tb - ta;
+    })
+    .map(
+      (entry) => `
+      <div style="padding:8px 0; border-bottom:1px dashed var(--gray-200); font-size:12.5px;">
+        <div style="color:var(--gray-700);">Diedit oleh <strong>${escapeHtml(entry.by_name || "-")}</strong> pada ${formatTanggalWaktu(entry.at)}</div>
+        <div style="color:var(--gray-500); margin-top:2px;">${escapeHtml(entry.ringkasan || "-")}</div>
+      </div>`
+    )
+    .join("");
+
+  return `
+    <div style="font-weight:600; font-size:13.5px; margin:14px 0 6px;">Riwayat Perubahan</div>
+    <div style="background:var(--gray-50); border-radius:var(--radius-sm); padding:4px 12px;">${rows}</div>
+  `;
 }
 
 function renderPaymentHistory(orderId, payments) {

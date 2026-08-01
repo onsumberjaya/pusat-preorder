@@ -27,6 +27,15 @@
       </div>
       <p class="page-subtitle">Semua pesanan preorder. Gunakan filter untuk mempersempit pencarian.</p>
 
+      <div class="quick-filter-row">
+        <button type="button" class="quick-filter-chip" id="quick-chip-belum-diambil" onclick="applyQuickFilter('belum-diambil-minggu-ini')">
+          <i class="ph-bold ph-calendar-check"></i> Belum Diambil Minggu Ini
+        </button>
+        <button type="button" class="quick-filter-chip" id="quick-chip-belum-lunas" onclick="applyQuickFilter('belum-lunas')">
+          <i class="ph-bold ph-money"></i> Belum Lunas
+        </button>
+      </div>
+
       <div class="filter-box" id="pesanan-filter-toolbar" style="display:none;">
         <div class="toolbar">
           <label style="font-size:12.5px; color:var(--gray-500); display:flex; align-items:center; gap:6px;">
@@ -41,6 +50,7 @@
           <select id="filter-gelombang"><option value="">Semua Gelombang</option></select>
           <select id="filter-bayar">
             <option value="">Semua Status Bayar</option>
+            <option value="belum_lunas">Belum Lunas (Cicilan + Belum Bayar)</option>
             <option value="lunas">Lunas</option>
             <option value="cicilan">Bayar Sebagian</option>
             <option value="belum_bayar">Belum Bayar</option>
