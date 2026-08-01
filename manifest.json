@@ -1,0 +1,20 @@
+{
+  "name": "Benih Preorder - Toko Pertanian Sumber Jaya",
+  "short_name": "Benih Preorder",
+  "description": "Aplikasi pencatatan pesanan preorder benih & pupuk untuk Toko Pertanian Sumber Jaya.",
+  "id": "/index.html",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#f0fdf4",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "dir": "ltr",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
