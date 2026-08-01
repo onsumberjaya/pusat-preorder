@@ -75,10 +75,31 @@ async function watchSingleSession(uid) {
       if (serverSessionId && serverSessionId !== localSessionId) {
         sessionKickHandled = true;
         localStorage.removeItem("device_session_id");
-        alert("Sesi Anda diakhiri karena akun ini baru saja login dari perangkat lain.");
-        auth.signOut().then(() => (window.location.href = "index.html"));
+        showSessionKickedModal();
       }
     });
+}
+
+// Modal custom (bukan alert() bawaan browser) supaya gayanya konsisten
+// dengan modal lain di aplikasi ini. Sengaja TIDAK bisa ditutup lewat klik
+// di luar kotak atau tombol X -- satu-satunya tombolnya langsung logout,
+// supaya orang tidak bisa "mengabaikan" peringatan ini dan terus memakai
+// sesi yang sebenarnya sudah tidak valid.
+function showSessionKickedModal() {
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <div class="modal-backdrop" style="display:flex;">
+      <div class="modal-box" style="max-width:380px; text-align:center;">
+        <i class="ph-bold ph-warning-circle" style="font-size:34px; color:var(--red-600);"></i>
+        <h3 style="margin:12px 0 6px;">Sesi Anda Diakhiri</h3>
+        <p style="color:var(--gray-500); font-size:13.5px; margin:0;">Akun ini baru saja login dari perangkat lain.</p>
+        <button type="button" class="btn-primary" style="width:100%; justify-content:center; margin-top:18px;" id="session-kicked-ok">OK</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div.firstElementChild);
+  document.getElementById("session-kicked-ok").addEventListener("click", () => {
+    auth.signOut().then(() => (window.location.href = "index.html"));
+  });
 }
 
 async function logout() {
