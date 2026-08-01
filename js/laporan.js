@@ -112,6 +112,11 @@ let legacyNotaCache = [];
 // sedang difilter di laporan) karena tujuannya memang mencari pesanan lama
 // yang belum punya nota_seq -- kapan pun itu terjadi. Karena itu dibuatkan
 // tombol manual terpisah, bukan dijalankan otomatis tiap halaman dibuka.
+function toggleNotaCheckTools() {
+  const box = document.getElementById("nota-check-tools");
+  box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
 async function checkDuplicateNotaNumbers() {
   const profile = lapProfile;
   if (!profile) return;
