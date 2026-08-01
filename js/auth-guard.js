@@ -103,7 +103,7 @@ function showSessionKickedModal() {
 }
 
 async function logout() {
-  if (!confirm("Keluar dari aplikasi?")) return;
+  if (!(await showConfirmModal("Keluar dari aplikasi?"))) return;
   const uid = auth.currentUser && auth.currentUser.uid;
   localStorage.removeItem("device_session_id");
   // Bersihkan juga active_session_id di server (bukan cuma lokal) -- harus

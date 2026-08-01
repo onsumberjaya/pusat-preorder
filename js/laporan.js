@@ -167,7 +167,7 @@ async function fixNamaAlamatFormat() {
     showToast("Tidak ada Nama/Alamat yang perlu dirapikan.", "success");
     return;
   }
-  if (!confirm(`Merapikan Nama & Alamat di ${legacy.length} pesanan lama. Lanjutkan?`)) return;
+  if (!(await showConfirmModal(`Merapikan Nama & Alamat di ${legacy.length} pesanan lama. Lanjutkan?`))) return;
 
   const btn = document.getElementById("fix-nama-alamat-btn");
   btn.disabled = true;
@@ -245,7 +245,7 @@ async function fixDuplicateNotaNumbers() {
     showToast("Tidak ada nomor nota yang perlu diperbaiki.", "success");
     return;
   }
-  if (!confirm(`Menomori ulang ${legacy.length} pesanan lama supaya tidak bentrok lagi dengan pesanan baru. Lanjutkan?`)) return;
+  if (!(await showConfirmModal(`Menomori ulang ${legacy.length} pesanan lama supaya tidak bentrok lagi dengan pesanan baru. Lanjutkan?`))) return;
 
   const btn = document.getElementById("fix-nota-btn");
   btn.disabled = true;

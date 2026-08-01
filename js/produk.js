@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function deleteProduct(id) {
-  if (!confirm("Hapus produk ini beserta semua gelombang harganya? Pesanan lama yang sudah ada tidak akan terhapus.")) return;
+  if (!(await showConfirmModal("Hapus produk ini beserta semua gelombang harganya? Pesanan lama yang sudah ada tidak akan terhapus.", { okLabel: "Ya, Hapus", danger: true }))) return;
   try {
     await db.collection("products").doc(id).delete();
     showToast("Produk dihapus.", "success");
@@ -202,7 +202,7 @@ async function setActiveWave(productId, waveId) {
 // server di dalam transaksi supaya penghapusan tidak menimpa perubahan
 // rekan kerja lain yang bersamaan mengedit gelombang produk yang sama.
 async function deleteWave(productId, waveId) {
-  if (!confirm("Hapus gelombang harga ini?")) return;
+  if (!(await showConfirmModal("Hapus gelombang harga ini?", { okLabel: "Ya, Hapus", danger: true }))) return;
   try {
     await db.runTransaction(async (tx) => {
       const ref = db.collection("products").doc(productId);

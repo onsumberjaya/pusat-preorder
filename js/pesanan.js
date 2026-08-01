@@ -484,7 +484,7 @@ async function bulkAction(value) {
   if (selectedIds.size === 0) return;
   const label = value ? "Sudah Diambil" : "Belum Diambil";
 
-  if (!confirm(`Terapkan status "${label}" ke ${selectedIds.size} pesanan terpilih?`)) return;
+  if (!(await showConfirmModal(`Terapkan status "${label}" ke ${selectedIds.size} pesanan terpilih?`))) return;
 
   const batch = db.batch();
   selectedIds.forEach((id) => {
@@ -508,7 +508,7 @@ async function bulkAction(value) {
 
 async function bulkDelete() {
   if (selectedIds.size === 0) return;
-  if (!confirm(`Hapus permanen ${selectedIds.size} pesanan terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+  if (!(await showConfirmModal(`Hapus permanen ${selectedIds.size} pesanan terpilih? Tindakan ini tidak bisa dibatalkan.`, { okLabel: "Ya, Hapus", danger: true }))) return;
   try {
     for (const id of selectedIds) {
       await deleteOrderCascade(id);
@@ -523,7 +523,7 @@ async function bulkDelete() {
 }
 
 async function deleteOrder(id) {
-  if (!confirm("Hapus pesanan ini secara permanen?")) return;
+  if (!(await showConfirmModal("Hapus pesanan ini secara permanen?", { okLabel: "Ya, Hapus", danger: true }))) return;
   try {
     await deleteOrderCascade(id);
     showToast("Pesanan dihapus.", "success");

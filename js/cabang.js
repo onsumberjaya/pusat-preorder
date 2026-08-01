@@ -187,7 +187,7 @@ async function jalankanMigrasi() {
     return;
   }
   const totalItem = legacyOrdersCache.length + legacyUsersCache.length;
-  if (!confirm(`Migrasikan ${totalItem} data lama sekarang? Tindakan ini aman & tidak bisa mengganggu data yang sudah benar.`)) return;
+  if (!(await showConfirmModal(`Migrasikan ${totalItem} data lama sekarang? Tindakan ini aman & tidak bisa mengganggu data yang sudah benar.`))) return;
 
   const btn = document.getElementById("migrasi-btn");
   btn.disabled = true;

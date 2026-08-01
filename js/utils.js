@@ -254,3 +254,54 @@ function formatAlamat(str) {
     .toLowerCase()
     .replace(/(^|\s)([a-zà-ÿ])/g, (m, sep, ch) => sep + ch.toUpperCase());
 }
+
+// Modal konfirmasi kustom BERSAMA (dimuat lewat utils.js di semua halaman)
+// -- menggantikan confirm() bawaan browser yang tampilannya beda-beda tiap
+// browser/OS dan tidak bisa diberi gaya. bodyHtml boleh HTML biasa (dipakai
+// input-pesanan.js untuk peringatan "belum lunas" yang perlu format lebih
+// kaya, bukan cuma teks polos). Mengembalikan Promise<boolean> (true = user
+// klik tombol konfirmasi).
+function ensureConfirmModal() {
+  if (document.getElementById("shared-confirm-modal")) return;
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <div class="modal-backdrop" id="shared-confirm-modal" style="display:none;">
+      <div class="modal-box" style="max-width:420px;">
+        <div id="shared-confirm-modal-body" style="font-size:14px; color:var(--gray-700);"></div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="button" id="shared-confirm-modal-ok" style="flex:1; justify-content:center;">Lanjutkan</button>
+          <button type="button" class="btn-secondary" id="shared-confirm-modal-cancel">Batal</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(div.firstElementChild);
+}
+
+// opts.okLabel: teks tombol konfirmasi (default "Lanjutkan").
+// opts.danger: true untuk aksi yang merusak/tidak bisa dibatalkan (mis.
+// hapus) -- tombolnya jadi merah (.btn-danger) alih-alih hijau (.btn-primary).
+function showConfirmModal(bodyHtml, opts) {
+  opts = opts || {};
+  ensureConfirmModal();
+  return new Promise((resolve) => {
+    const modal = document.getElementById("shared-confirm-modal");
+    document.getElementById("shared-confirm-modal-body").innerHTML = bodyHtml;
+    modal.style.display = "flex";
+
+    const okBtn = document.getElementById("shared-confirm-modal-ok");
+    const cancelBtn = document.getElementById("shared-confirm-modal-cancel");
+    okBtn.textContent = opts.okLabel || "Lanjutkan";
+    okBtn.className = opts.danger ? "btn-danger" : "btn-primary";
+
+    const cleanup = (result) => {
+      modal.style.display = "none";
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}

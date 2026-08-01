@@ -7,46 +7,8 @@ let formReady = false;
 let allCabangInput = [];
 let cabangReady = false;
 
-// Modal konfirmasi kustom (di tengah layar, sesuai gaya modal lain di
-// aplikasi ini) -- dipakai untuk peringatan "nota tempo / belum lunas" saat
-// simpan pesanan baru. Mengembalikan Promise<boolean> (true = Lanjutkan).
-function ensureConfirmModal() {
-  if (document.getElementById("confirm-modal")) return;
-  const div = document.createElement("div");
-  div.innerHTML = `
-    <div class="modal-backdrop" id="confirm-modal" style="display:none;">
-      <div class="modal-box" style="max-width:420px;">
-        <div id="confirm-modal-body"></div>
-        <div style="display:flex; gap:10px; margin-top:18px;">
-          <button type="button" class="btn-primary" id="confirm-modal-ok" style="flex:1; justify-content:center;">Lanjutkan Simpan</button>
-          <button type="button" class="btn-secondary" id="confirm-modal-cancel">Batal</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(div.firstElementChild);
-}
-
-function showConfirmModal(bodyHtml) {
-  ensureConfirmModal();
-  return new Promise((resolve) => {
-    const modal = document.getElementById("confirm-modal");
-    document.getElementById("confirm-modal-body").innerHTML = bodyHtml;
-    modal.style.display = "flex";
-
-    const cleanup = (result) => {
-      modal.style.display = "none";
-      okBtn.removeEventListener("click", onOk);
-      cancelBtn.removeEventListener("click", onCancel);
-      resolve(result);
-    };
-    const okBtn = document.getElementById("confirm-modal-ok");
-    const cancelBtn = document.getElementById("confirm-modal-cancel");
-    const onOk = () => cleanup(true);
-    const onCancel = () => cleanup(false);
-    okBtn.addEventListener("click", onOk);
-    cancelBtn.addEventListener("click", onCancel);
-  });
-}
+// ensureConfirmModal()/showConfirmModal() sekarang di js/utils.js (dipakai
+// bersama semua halaman, supaya gaya popup konsisten di mana pun).
 
 function emptyLine() {
   return { key: lineKeyCounter++, product_id: "", wave_id: "", jumlah: "1" };
@@ -564,7 +526,7 @@ async function handleSubmit(e) {
              <div style="display:flex; justify-content:space-between;"><span>Dibayar</span><span>${formatRupiah(paidAmount)}</span></div>
              <div style="display:flex; justify-content:space-between; color:var(--red-600);"><span>Sisa / Tempo</span><strong>${formatRupiah(sisaBelum)}</strong></div>
            </div>`;
-    const lanjut = await showConfirmModal(bodyHtml);
+    const lanjut = await showConfirmModal(bodyHtml, { okLabel: "Lanjutkan Simpan" });
     if (!lanjut) return;
   }
 
