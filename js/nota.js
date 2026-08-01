@@ -92,13 +92,14 @@ function renderNota() {
         <p style="margin:6px 0 0; font-weight:700; letter-spacing:1px;">NOTA PREORDER</p>
       </div>
       <div style="display:flex; justify-content:space-between; gap:14mm; margin-bottom:14px;">
-        <table style="border-collapse:collapse; width:120mm;">
-          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">No. Nota</td><td style="padding:1px 0;">: ${formatOrderNo(o)}</td></tr>
+        <table style="border-collapse:collapse; width:90mm;">
           <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">Nama</td><td style="padding:1px 0;">: ${escapeHtml(o.nama_pembeli)}</td></tr>
           <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">Alamat</td><td style="padding:1px 0; word-break:break-word;">: ${escapeHtml(o.alamat || "-")}</td></tr>
           <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap; vertical-align:top;">No. HP</td><td style="padding:1px 0;">: ${escapeHtml(o.no_hp || "-")}</td></tr>
         </table>
+        <div style="flex:1 1 auto;"></div>
         <table style="border-collapse:collapse; flex-shrink:0; align-self:flex-start;">
+          <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">No. Nota</td><td style="padding:1px 0; white-space:nowrap;">: ${formatOrderNo(o)}</td></tr>
           <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Tanggal</td><td style="padding:1px 0; white-space:nowrap;">: ${formatTanggal(o.tanggal)}</td></tr>
           <tr><td style="font-weight:700; padding:1px 6px 1px 0; white-space:nowrap;">Status</td><td style="padding:1px 0; white-space:nowrap;">: ${STATUS_BAYAR_LABEL[o.status_bayar]}</td></tr>
         </table>
