@@ -574,7 +574,7 @@ table tbody tr:hover { background: var(--gray-50); }
 
 .nota-a4 { width: 210mm; min-height: 148mm; margin: 0 auto; padding: 14mm; background: #fff; font-size: 13px; }
 .nota-a4 table { font-size: 12.5px; }
-.nota-dm { width: 68mm; margin: 0 auto; padding: 2mm 4mm; background: #fff; font-family: "Consolas", "Lucida Console", "Courier New", monospace; font-size: 13.5px; font-weight: 400; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.nota-dm { width: 68mm; margin: 0 auto; padding: 2mm 4mm; background: #fff; font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 13.5px; font-weight: 400; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .nota-dm table { font-size: 13px; width: 100%; font-weight: 400; }
 .nota-dm td, .nota-dm th { padding: 2px 0; border: none; }
 .nota-dm .info-table td { padding: 1px 0; }

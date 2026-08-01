@@ -20,19 +20,21 @@ window.onAuthReady = async function () {
     notaOrder = { id: orderDoc.id, ...orderDoc.data() };
     if (tokoDoc.exists) notaToko = tokoDoc.data();
 
-    // Kop nota pakai data CABANG tempat pesanan ini dibuat (nama/alamat/
-    // no. HP-nya sendiri), bukan 1 Profil Toko yang sama untuk semua --
-    // supaya pembeli di cabang dapat nota dengan alamat yang benar-benar
-    // sesuai lokasi cabang itu. Kalau pesanan belum punya cabang_id (data
-    // lama sebelum fitur cabang ada) atau cabang-nya sudah dihapus, tetap
-    // pakai Profil Toko utama seperti biasa (fallback aman).
+    // Kop nota pakai ALAMAT & NO. HP dari CABANG tempat pesanan ini dibuat
+    // (supaya pembeli di cabang dapat nota dengan alamat yang benar-benar
+    // sesuai lokasi cabang itu) -- TAPI nama tokonya selalu pakai Profil
+    // Toko utama untuk semua cabang (bukan nama cabangnya), supaya branding
+    // di nota tetap konsisten "TOKO SUMBER JAYA" di mana pun pesanan dibuat.
+    // Kalau pesanan belum punya cabang_id (data lama sebelum fitur cabang
+    // ada) atau cabang-nya sudah dihapus, alamat/no.HP juga tetap pakai
+    // Profil Toko utama seperti biasa (fallback aman).
     if (notaOrder.cabang_id) {
       try {
         const cabangDoc = await db.collection("cabang").doc(notaOrder.cabang_id).get();
         if (cabangDoc.exists) {
           const c = cabangDoc.data();
           notaToko = {
-            nama: c.nama || notaToko.nama,
+            nama: notaToko.nama,
             alamat: c.alamat || notaToko.alamat,
             no_hp: c.no_hp || notaToko.no_hp,
           };
@@ -89,7 +91,7 @@ function renderNota() {
         <p style="margin:2px 0;">${escapeHtml(notaToko.no_hp || "")}</p>
         <p style="margin:6px 0 0; font-weight:700; letter-spacing:1px;">NOTA PREORDER</p>
       </div>
-      <table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
+      <table style="width:100%; table-layout:fixed; border-collapse:collapse; margin-bottom:14px;">
         <tr>
           <td style="width:50%; vertical-align:top; padding:0;">
             <table style="border-collapse:collapse;">
