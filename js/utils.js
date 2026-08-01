@@ -238,3 +238,19 @@ function renderPaginationControls(currentPage, pageSize, totalItems, gotoFnName)
     </div>
   `;
 }
+
+// Dipakai saat menyimpan pesanan (baru maupun edit) di js/input-pesanan.js,
+// supaya format Nama & Alamat konsisten di SEMUA tampilan (Daftar Pesanan,
+// Laporan, Nota, Dashboard, export Excel/PDF) -- karena semuanya menampilkan
+// nilai field ini apa adanya dari database, cukup diformat sekali saat
+// disimpan, tidak perlu diformat ulang di tiap halaman yang menampilkannya.
+function formatNamaPembeli(str) {
+  return (str || "").trim().toUpperCase();
+}
+
+function formatAlamat(str) {
+  return (str || "")
+    .trim()
+    .toLowerCase()
+    .replace(/(^|\s)([a-zà-ÿ])/g, (m, sep, ch) => sep + ch.toUpperCase());
+}

@@ -587,8 +587,8 @@ async function handleSubmit(e) {
   btn.textContent = "Menyimpan...";
 
   const tanggal = new Date(document.getElementById("f-tanggal").value);
-  const namaPembeli = document.getElementById("f-nama").value.trim();
-  const alamat = document.getElementById("f-alamat").value.trim();
+  const namaPembeli = formatNamaPembeli(document.getElementById("f-nama").value);
+  const alamat = formatAlamat(document.getElementById("f-alamat").value);
   const noHp = document.getElementById("f-nohp").value.trim();
   const catatan = document.getElementById("f-catatan").value.trim();
   const profile = window.currentUserProfile;

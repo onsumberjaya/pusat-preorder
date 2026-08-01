@@ -87,6 +87,15 @@ window.onAuthReady = async function (profile) {
       lapPage = 1;
       renderReport();
     });
+
+    // "Alat Lanjutan" (cek nomor nota bentrok, rapikan nama/alamat lama)
+    // cuma relevan untuk Owner -- keduanya mengubah field yang Firestore
+    // Rules kunci khusus Owner (nama_pembeli/alamat/nota_seq bukan termasuk
+    // field yang boleh disentuh Admin Kasir/Karyawan), jadi disembunyikan
+    // total dari role lain daripada menampilkan tombol yang pasti gagal.
+    if (profile.role === "owner") {
+      document.getElementById("nota-check-toggle-wrap").style.display = "block";
+    }
     // Catatan: pengecekan nomor nota bentrok TIDAK dijalankan otomatis di
     // sini lagi -- itu butuh baca seluruh riwayat pesanan (bukan cuma
     // rentang tanggal di atas), jadi sekarang jadi tombol manual terpisah
@@ -115,6 +124,83 @@ let legacyNotaCache = [];
 function toggleNotaCheckTools() {
   const box = document.getElementById("nota-check-tools");
   box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+// Cari pesanan lama yang Nama/Alamat-nya belum sesuai format baru (Nama
+// HURUF KAPITAL, Alamat Kapital Tiap Kata) -- dibaca dari SELURUH riwayat
+// (bukan cuma rentang tanggal aktif), sama seperti pengecekan nomor nota.
+let legacyNamaAlamatCache = [];
+async function checkNamaAlamatFormat() {
+  const profile = lapProfile;
+  if (!profile) return;
+  showToast("Memeriksa seluruh riwayat pesanan...", "success");
+  try {
+    let q = db.collection("orders");
+    if (!lapShowCabang && profile.cabang_id) {
+      q = q.where("cabang_id", "==", profile.cabang_id);
+    }
+    const snap = await q.get();
+    legacyNamaAlamatCache = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter(
+        (o) =>
+          (o.nama_pembeli && o.nama_pembeli !== formatNamaPembeli(o.nama_pembeli)) ||
+          (o.alamat && o.alamat !== formatAlamat(o.alamat))
+      );
+
+    if (legacyNamaAlamatCache.length === 0) {
+      showToast("Semua Nama & Alamat sudah rapi, tidak ada yang perlu diperbaiki.", "success");
+      return;
+    }
+    const card = document.getElementById("fix-nama-alamat-card");
+    document.getElementById("fix-nama-alamat-desc").textContent =
+      `Ditemukan ${legacyNamaAlamatCache.length} pesanan lama yang Nama/Alamat-nya belum rapi (Nama belum HURUF KAPITAL, atau Alamat belum Kapital Tiap Kata). Klik tombol di bawah untuk merapikannya sekaligus.`;
+    card.style.display = "block";
+  } catch (err) {
+    showToast("Gagal memeriksa riwayat: " + friendlyFirebaseError(err), "error");
+  }
+}
+
+async function fixNamaAlamatFormat() {
+  const legacy = legacyNamaAlamatCache;
+  if (legacy.length === 0) {
+    showToast("Tidak ada Nama/Alamat yang perlu dirapikan.", "success");
+    return;
+  }
+  if (!confirm(`Merapikan Nama & Alamat di ${legacy.length} pesanan lama. Lanjutkan?`)) return;
+
+  const btn = document.getElementById("fix-nama-alamat-btn");
+  btn.disabled = true;
+  // Ditulis lewat batch (bukan satu-satu seperti perbaikan nomor nota)
+  // karena di sini TIDAK ada counter yang perlu ditransaksikan berurutan --
+  // tiap pesanan independen, jadi lebih cepat digabung dalam beberapa batch.
+  const CHUNK_SIZE = 400; // batas aman jauh di bawah limit 500 tulisan/batch Firestore
+  let fixed = 0;
+  try {
+    for (let i = 0; i < legacy.length; i += CHUNK_SIZE) {
+      const chunk = legacy.slice(i, i + CHUNK_SIZE);
+      const batch = db.batch();
+      chunk.forEach((order) => {
+        const newNama = formatNamaPembeli(order.nama_pembeli);
+        const newAlamat = order.alamat ? formatAlamat(order.alamat) : order.alamat;
+        batch.update(db.collection("orders").doc(order.id), {
+          nama_pembeli: newNama,
+          alamat: newAlamat,
+        });
+        order.nama_pembeli = newNama;
+        order.alamat = newAlamat;
+      });
+      await batch.commit();
+      fixed += chunk.length;
+    }
+    showToast(`${fixed} pesanan berhasil dirapikan Nama/Alamat-nya.`, "success");
+    document.getElementById("fix-nama-alamat-card").style.display = "none";
+    await applyReportFilter();
+  } catch (err) {
+    showToast(`Berhenti di tengah jalan (${fixed}/${legacy.length} selesai): ${friendlyFirebaseError(err)}`, "error");
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function checkDuplicateNotaNumbers() {
