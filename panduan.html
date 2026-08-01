@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panduan - Benih Preorder</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#16a34a" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Benih Preorder" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="js/pwa-register.js"></script>
+<style>
+  /* ---- Gaya khusus halaman Panduan (tidak mengubah style.css global) ---- */
+  .panduan-intro-alert{display:flex; gap:12px; align-items:flex-start; background:var(--blue-50); color:var(--blue-700); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:20px; font-size:13.5px; line-height:1.55;}
+  .panduan-intro-alert i{font-size:20px; flex-shrink:0; margin-top:1px;}
+
+  .panduan-search{position:relative; margin-bottom:18px;}
+  .panduan-search i{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--gray-400); font-size:17px;}
+  .panduan-search input{width:100%; padding:12px 14px 12px 40px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; font-family:inherit; background:#fff; box-shadow:var(--shadow-sm);}
+  .panduan-search input:focus{outline:none; border-color:var(--brand-500); box-shadow:0 0 0 3px var(--brand-100);}
+  #panduan-search-count{font-size:12px; color:var(--gray-500); margin:-10px 0 18px 2px; display:none;}
+
+  .panduan-quicknav{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;}
+  .panduan-quicknav a{display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; background:#fff; border:1px solid var(--gray-200); color:var(--gray-700); font-size:13px; font-weight:600; text-decoration:none; box-shadow:var(--shadow-sm); transition:all .15s ease;}
+  .panduan-quicknav a:hover{border-color:var(--brand-300); background:var(--brand-50); color:var(--brand-700);}
+  .panduan-quicknav a i{font-size:15px; color:var(--brand-600);}
+
+  .panduan-section{margin-bottom:18px; scroll-margin-top:20px;}
+  .panduan-section summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:14px; padding:18px 20px;}
+  .panduan-section summary::-webkit-details-marker{display:none;}
+  .panduan-section-icon{width:42px; height:42px; border-radius:12px; background:var(--brand-100); color:var(--brand-700); display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0;}
+  .panduan-section-title{flex:1;}
+  .panduan-section-title h2{margin:0 0 2px; font-size:16px; color:var(--gray-900); font-weight:800;}
+  .panduan-section-title p{margin:0; font-size:12.5px; color:var(--gray-500);}
+  .panduan-chevron{font-size:18px; color:var(--gray-400); transition:transform .2s ease; flex-shrink:0;}
+  .panduan-section[open] .panduan-chevron{transform:rotate(180deg);}
+  .panduan-section[open] .panduan-section-icon{background:var(--brand-600); color:#fff;}
+  .panduan-body{padding:0 20px 22px 76px; font-size:13.5px; line-height:1.7; color:var(--gray-700);}
+  .panduan-body h3{font-size:13.5px; font-weight:800; color:var(--gray-900); margin:22px 0 10px;}
+  .panduan-body h3:first-child{margin-top:4px;}
+  .panduan-body p{margin:0 0 10px;}
+
+  .panduan-steps{list-style:none; margin:0; padding:0; counter-reset:pstep;}
+  .panduan-steps > li{counter-increment:pstep; position:relative; padding:0 0 16px 34px; margin-bottom:2px;}
+  .panduan-steps > li:last-child{padding-bottom:0;}
+  .panduan-steps > li::before{content:counter(pstep); position:absolute; left:0; top:0; width:24px; height:24px; border-radius:50%; background:var(--brand-600); color:#fff; font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .panduan-steps > li::after{content:""; position:absolute; left:11.5px; top:26px; bottom:-2px; width:1px; background:var(--gray-200);}
+  .panduan-steps > li:last-child::after{display:none;}
+  .panduan-steps ul{margin:8px 0 0; padding-left:18px;}
+  .panduan-steps ul li{margin-bottom:4px;}
+  .panduan-steps strong{color:var(--gray-900);}
+
+  .panduan-note{display:flex; gap:10px; align-items:flex-start; background:var(--gray-50); border:1px solid var(--gray-100); border-radius:var(--radius-sm); padding:12px 14px; margin:10px 0; font-size:13px;}
+  .panduan-note i{color:var(--gray-400); font-size:16px; margin-top:1px; flex-shrink:0;}
+  .panduan-note.warn{background:var(--yellow-50); border-color:#fde68a;}
+  .panduan-note.warn i{color:var(--yellow-700);}
+  .panduan-note.owner{background:var(--blue-50); border-color:#bfdbfe;}
+  .panduan-note.owner i{color:var(--blue-700);}
+
+  .panduan-icon-table{width:100%; border-collapse:collapse; margin:10px 0; font-size:13px;}
+  .panduan-icon-table td{padding:9px 6px; border-bottom:1px solid var(--gray-100); vertical-align:top;}
+  .panduan-icon-table td:first-child{width:38px; text-align:center; font-size:17px;}
+
+  .panduan-footer{text-align:center; color:var(--gray-400); font-size:12.5px; padding:20px 0 6px;}
+
+  @media (max-width: 640px){
+    .panduan-body{padding-left:20px;}
+    .panduan-section summary{padding:16px;}
+  }
+</style>
+</head>
+<body>
+  <div id="mobile-topbar"></div>
+  <div id="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar"></nav>
+    <main class="content">
+      <h1 class="page-title">Panduan</h1>
+      <p class="page-subtitle">Cara pakai halaman Input Pesanan, Daftar Pesanan, dan Laporan &amp; Export sehari-hari.</p>
+
+      <div class="panduan-intro-alert">
+        <i class="ph-bold ph-info"></i>
+        <div>Beberapa tombol di panduan ini hanya muncul untuk role tertentu (Owner / Admin Kasir / Karyawan Cabang). Kalau ada tombol yang disebut di sini tapi tidak muncul di layar Anda, kemungkinan besar itu memang dibatasi untuk role Anda — bukan error.</div>
+      </div>
+
+      <div class="panduan-search">
+        <i class="ph-bold ph-magnifying-glass"></i>
+        <input type="text" id="panduan-search-input" placeholder="Cari kata kunci... misal: gelombang, edit pesanan, export" />
+      </div>
+      <div id="panduan-search-count"></div>
+
+      <div class="panduan-quicknav">
+        <a href="#sec-input"><i class="ph-bold ph-plus-circle"></i> Input Pesanan</a>
+        <a href="#sec-daftar"><i class="ph-bold ph-clipboard-text"></i> Daftar Pesanan</a>
+        <a href="#sec-laporan"><i class="ph-bold ph-file-arrow-down"></i> Laporan &amp; Export</a>
+      </div>
+
+      <!-- ============ 1. INPUT PESANAN ============ -->
+      <details class="panduan-section card" id="sec-input" open>
+        <summary>
+          <span class="panduan-section-icon"><i class="ph-bold ph-plus-circle"></i></span>
+          <span class="panduan-section-title">
+            <h2>1. Input Pesanan</h2>
+            <p>Mencatat pesanan preorder baru dari pembeli</p>
+          </span>
+          <i class="ph-bold ph-caret-down panduan-chevron"></i>
+        </summary>
+        <div class="panduan-body">
+          <h3>Langkah-langkah</h3>
+          <ol class="panduan-steps">
+            <li>Buka menu <strong>Input Pesanan</strong> dari sidebar.</li>
+            <li><strong>Cabang</strong> — kalau Anda Karyawan Cabang, kolom ini otomatis terisi &amp; terkunci ke cabang Anda sendiri (tidak perlu dipilih manual). Kalau Anda Owner/Admin Kasir, pilih dulu cabang tujuan pesanan dari dropdown.</li>
+            <li>Isi data pembeli:
+              <ul>
+                <li><strong>Tanggal</strong> — otomatis terisi tanggal hari ini, bisa diubah kalau perlu.</li>
+                <li><strong>Nama Pembeli</strong> (wajib, minimal 3 huruf).</li>
+                <li><strong>Alamat</strong> (wajib).</li>
+                <li><strong>No. HP</strong> (opsional, tapi isi kalau ada — dipakai tombol "Kirim WA" nanti di Daftar Pesanan).</li>
+                <li><strong>Catatan</strong> (opsional).</li>
+              </ul>
+            </li>
+            <li><strong>Produk Dipesan</strong> — untuk tiap barang yang dipesan:
+              <ul>
+                <li>Pilih <strong>Produk</strong> dari dropdown.</li>
+                <li><strong>Gelombang</strong> otomatis terpilih ke gelombang yang sedang aktif untuk produk itu (bisa diganti manual kalau perlu gelombang lain).</li>
+                <li>Isi <strong>Jumlah</strong>.</li>
+                <li>Kalau jumlah yang diminta melebihi stok tercatat, akan muncul peringatan kuning — pesanan tetap bisa disimpan, tapi cek dulu stok fisiknya sebelum janji ke pembeli.</li>
+                <li>Klik <strong>"+ Tambah Produk Lain"</strong> kalau pembeli pesan lebih dari 1 jenis produk dalam 1 nota.</li>
+              </ul>
+            </li>
+            <li><strong>Uang Muka / Bayar Sekarang (Rp)</strong> — isi <code>0</code> kalau pembeli belum bayar sama sekali, atau isi sesuai Total Pesanan kalau langsung Lunas. Status Bayar (Lunas / Bayar Sebagian / Belum Bayar) dihitung otomatis dari angka ini.</li>
+            <li>Cek <strong>Ringkasan Pesanan</strong> di sisi kanan/bawah untuk memastikan semua sudah benar, lalu klik <strong>"Simpan Pesanan"</strong>.</li>
+            <li>Setelah tersimpan, akan muncul tombol <strong>"🖨️ Cetak Nota"</strong> untuk mencetak/menampilkan nota pesanan itu, dan <strong>"+ Input Pesanan Lain"</strong> untuk langsung mencatat pesanan berikutnya.</li>
+          </ol>
+
+          <h3>Catatan penting</h3>
+          <div class="panduan-note">
+            <i class="ph-bold ph-hash"></i>
+            <div>Nomor nota dibuat <strong>otomatis</strong> saat pesanan disimpan (urut per tahun) — tidak perlu diisi manual.</div>
+          </div>
+          <div class="panduan-note owner">
+            <i class="ph-bold ph-pencil-simple"></i>
+            <div><strong>Mengedit pesanan yang sudah tersimpan</strong> (ganti nama/alamat/produk) hanya bisa dilakukan lewat tombol <strong>"Edit Pesanan"</strong> oleh <strong>Owner</strong>, dari halaman Daftar Pesanan. Kalau Anda Karyawan/Admin Kasir dan cuma perlu <strong>mengoreksi jumlah</strong> salah satu item (misalnya salah input qty), pakai tombol <strong>"Ubah Jumlah Pesanan"</strong> di halaman Daftar Pesanan — tidak perlu ke halaman Input Pesanan lagi.</div>
+          </div>
+          <div class="panduan-note warn">
+            <i class="ph-bold ph-warning"></i>
+            <div>Kalau cabang Anda sedang <strong>dinonaktifkan</strong> oleh Owner, halaman ini akan memberi tahu dan Anda tidak bisa input pesanan baru sampai diaktifkan lagi.</div>
+          </div>
+        </div>
+      </details>
+
+      <!-- ============ 2. DAFTAR PESANAN ============ -->
+      <details class="panduan-section card" id="sec-daftar">
+        <summary>
+          <span class="panduan-section-icon"><i class="ph-bold ph-clipboard-text"></i></span>
+          <span class="panduan-section-title">
+            <h2>2. Daftar Pesanan</h2>
+            <p>Melihat, mencari, dan mengelola semua pesanan yang masuk</p>
+          </span>
+          <i class="ph-bold ph-caret-down panduan-chevron"></i>
+        </summary>
+        <div class="panduan-body">
+          <h3>Mencari &amp; memfilter pesanan</h3>
+          <p>Di bagian atas tabel tersedia filter:</p>
+          <ul>
+            <li><strong>Dari / Sampai tanggal</strong></li>
+            <li><strong>Cari</strong> — cari berdasarkan nama pembeli, no HP, atau nomor pesanan</li>
+            <li><strong>Produk</strong> dan <strong>Gelombang</strong></li>
+            <li><strong>Status Bayar</strong> — Semua / Belum Lunas (gabungan cicilan+belum bayar) / Lunas / Bayar Sebagian / Belum Bayar</li>
+            <li><strong>Status Ambil</strong> — Sudah Diambil / Belum Diambil</li>
+            <li><strong>⚠️ Cek Anomali</strong> — centang untuk menyaring pesanan yang harganya beda dari harga gelombang yang berlaku sekarang (perlu dicek ulang)</li>
+          </ul>
+
+          <h3>Aksi di tiap baris pesanan</h3>
+          <p>Ikon-ikon di kolom paling kanan tabel:</p>
+          <table class="panduan-icon-table">
+            <tbody>
+              <tr><td>👁️</td><td><strong>Lihat Detail / Catat Bayar</strong> — buka detail pesanan, catat pembayaran baru, lihat riwayat pembayaran</td></tr>
+              <tr><td>💬</td><td><strong>Kirim WA ke Pembeli</strong> — kirim pesan WhatsApp langsung (hanya muncul kalau No. HP diisi)</td></tr>
+              <tr><td>🖨️</td><td><strong>Cetak Nota</strong> — buka &amp; cetak nota pesanan</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Detail Pesanan (klik ikon mata)</h3>
+          <p>Di jendela ini Anda bisa:</p>
+          <ul>
+            <li><strong>Catat Pembayaran Baru</strong> — isi jumlah yang dibayar pembeli (ada tautan cepat <strong>"Isi lunas"</strong> untuk langsung isi sisa tagihan penuh).</li>
+            <li>Lihat <strong>Riwayat Pembayaran</strong> — semua cicilan yang pernah tercatat.</li>
+            <li><strong>Ubah Jumlah Pesanan</strong> (khusus Karyawan/Admin Kasir) — kalau ada salah input jumlah salah satu produk, bisa dikoreksi di sini tanpa perlu Owner. (Jumlah item tidak bisa ditambah/dikurangi lewat sini — kalau perlu tambah/hapus jenis produk, minta Owner pakai "Edit Pesanan".)</li>
+            <li>(Khusus Owner) tombol <strong>"Edit Pesanan"</strong> (edit penuh: nama, alamat, produk) dan <strong>"Hapus"</strong> pesanan.</li>
+            <li><strong>WA: Siap Diambil</strong> — kirim template pesan WA siap ambil ke pembeli.</li>
+          </ul>
+
+          <h3>Menandai pesanan sudah diambil</h3>
+          <p>Setiap baris punya kontrol status ambil — tandai <strong>"Sudah Diambil"</strong> begitu pembeli mengambil barangnya, supaya laporan tetap akurat.</p>
+
+          <h3>Pilih beberapa pesanan sekaligus (aksi massal)</h3>
+          <p>Centang kotak di kolom paling kiri untuk masuk mode pilih banyak, lalu centang beberapa pesanan sekaligus. Toolbar aksi massal akan muncul di bawah untuk menerapkan status "Sudah Diambil"/"Belum Diambil" ke semua pesanan yang dipilih sekaligus — berguna kalau ada banyak pesanan yang diambil dalam satu waktu (mis. serentak saat gelombang datang). Klik <strong>"Batal"</strong> untuk keluar dari mode pilih.</p>
+        </div>
+      </details>
+
+      <!-- ============ 3. LAPORAN & EXPORT ============ -->
+      <details class="panduan-section card" id="sec-laporan">
+        <summary>
+          <span class="panduan-section-icon"><i class="ph-bold ph-file-arrow-down"></i></span>
+          <span class="panduan-section-title">
+            <h2>3. Laporan &amp; Export</h2>
+            <p>Rekap data pesanan &amp; unduh dalam bentuk Excel/PDF</p>
+          </span>
+          <i class="ph-bold ph-caret-down panduan-chevron"></i>
+        </summary>
+        <div class="panduan-body">
+          <p>Dipakai untuk melihat rekap dan mengunduh data pesanan dalam bentuk Excel/PDF, misalnya untuk laporan ke pemilik atau rekap stok yang keluar.</p>
+
+          <h3>Cara pakai</h3>
+          <ol class="panduan-steps">
+            <li>Buka menu <strong>Laporan &amp; Export</strong>.</li>
+            <li>Secara default, laporan hanya memuat <strong>30 hari terakhir</strong> supaya cepat dibuka. Kalau butuh data lebih lama, ubah <strong>Dari Tanggal</strong> / <strong>Sampai Tanggal</strong>, lalu klik <strong>"Terapkan Filter"</strong>.</li>
+            <li>Bisa juga disaring per <strong>Produk</strong> atau <strong>Cabang</strong> (kalau Anda Owner/Admin Kasir — Karyawan Cabang otomatis hanya melihat data cabang sendiri).</li>
+            <li>Setelah data yang ditampilkan sudah sesuai kebutuhan, klik:
+              <ul>
+                <li><strong>"⬇️ Export Excel"</strong> — unduh sebagai file <code>.xlsx</code>, atau</li>
+                <li><strong>"⬇️ Export PDF"</strong> — unduh sebagai file <code>.pdf</code>.</li>
+              </ul>
+            </li>
+          </ol>
+
+          <h3>Isi laporan yang diekspor</h3>
+          <p>Tiap baris di laporan mewakili <strong>1 produk</strong> dalam 1 pesanan (kalau 1 pesanan berisi 3 produk, jadi 3 baris) — memuat: No Pesanan, Tanggal, Cabang (kalau Anda bisa lihat semua cabang), Nama, No HP, Alamat, Produk, Gelombang, Qty, Harga Satuan, Subtotal, Total Pesanan, Dibayar, Kekurangan, Status Bayar, status Pengambilan, penanda "Cek Harga" (kalau ada harga yang janggal/berubah dari gelombang aktif), dan Catatan.</p>
+
+          <h3>Catatan</h3>
+          <div class="panduan-note warn">
+            <i class="ph-bold ph-warning"></i>
+            <div>Kalau tabel laporan menunjukkan tanda <strong>⚠️ JANGGAL</strong> pada kolom "Cek Harga", itu artinya harga di pesanan itu berbeda dari harga gelombang yang berlaku sekarang — laporkan ke Owner untuk dicek, bukan berarti ada yang salah pasti.</div>
+          </div>
+        </div>
+      </details>
+
+      <p class="panduan-footer">Panduan ini menjelaskan cara pakai aplikasi. Untuk pertanyaan soal kebijakan toko (harga, stok, cara tagih pembeli, dll), tanyakan langsung ke Owner/pemilik toko.</p>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script>
+    // Pencarian ringan: buka otomatis section yang cocok, sembunyikan yang tidak.
+    const searchInput = document.getElementById("panduan-search-input");
+    const searchCount = document.getElementById("panduan-search-count");
+    const sections = Array.from(document.querySelectorAll(".panduan-section"));
+
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+
+      if (!q) {
+        sections.forEach((sec) => {
+          sec.style.display = "";
+        });
+        searchCount.style.display = "none";
+        return;
+      }
+
+      let matchCount = 0;
+      sections.forEach((sec) => {
+        const text = sec.innerText.toLowerCase();
+        const match = text.includes(q);
+        sec.style.display = match ? "" : "none";
+        if (match) {
+          matchCount++;
+          sec.open = true;
+        }
+      });
+
+      searchCount.style.display = "block";
+      searchCount.textContent = matchCount
+        ? `Ditemukan di ${matchCount} bagian panduan.`
+        : `Tidak ada hasil untuk "${searchInput.value.trim()}". Coba kata kunci lain.`;
+    });
+  </script>
+</body>
+</html>
