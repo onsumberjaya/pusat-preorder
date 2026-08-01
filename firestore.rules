@@ -48,6 +48,18 @@ service cloud.firestore {
       return userCabangId() != null && cabangId == userCabangId();
     }
 
+    // Cabang yang sudah dinonaktifkan Owner (lihat halaman Kelola Cabang)
+    // tidak boleh lagi dipakai untuk pesanan BARU oleh Karyawan yang terkunci
+    // ke situ -- riwayat pesanan lamanya tetap bisa dibaca seperti biasa
+    // (tidak memengaruhi rule "read" di atas, cuma "create" pesanan baru).
+    // Kalau dokumen cabangnya sendiri sudah tidak ada (dihapus manual lewat
+    // Firestore Console, di luar jalur normal aplikasi), dianggap TIDAK aktif
+    // juga (gagal tertutup, bukan gagal terbuka).
+    function isCabangActive(cabangId) {
+      return exists(/databases/$(database)/documents/cabang/$(cabangId))
+        && get(/databases/$(database)/documents/cabang/$(cabangId)).data.get('is_active', true) != false;
+    }
+
     // Menghitung status bayar dari total & jumlah yang sudah dibayar, harus
     // sama persis dengan computeStatusBayar() di js/utils.js. Ini mencegah
     // seseorang mengirim data yang tidak konsisten (mis. status "lunas" tapi
@@ -169,13 +181,18 @@ service cloud.firestore {
 
       // Saat pesanan baru dibuat: created_by wajib sama dengan yang login
       // (tidak bisa mengaku-aku sebagai karyawan lain), cabang_id wajib diisi,
-      // dan kalau yang input Karyawan cabang, cabang_id WAJIB sama dengan
-      // cabang_id akunnya sendiri (tidak bisa input atas nama cabang lain).
+      // dan kalau yang input Karyawan cabang: cabang_id WAJIB sama dengan
+      // cabang_id akunnya sendiri (tidak bisa input atas nama cabang lain)
+      // DAN cabang itu wajib masih aktif (Owner belum menonaktifkannya).
+      // Admin Kasir/Owner tidak kena batasan cabang aktif ini -- mereka boleh
+      // tetap mencatat pesanan susulan/koreksi untuk cabang yang sudah tutup
+      // kalau memang perlu.
       allow create: if isSignedIn() && isActiveUser()
         && isValidOrderShape(request.resource.data)
         && request.resource.data.created_by == request.auth.uid
         && request.resource.data.cabang_id is string && request.resource.data.cabang_id.size() > 0
-        && (canAccessAllBranches() || sameCabang(request.resource.data.cabang_id));
+        && (canAccessAllBranches()
+            || (sameCabang(request.resource.data.cabang_id) && isCabangActive(request.resource.data.cabang_id)));
 
       // order_no/created_by/created_at/nota_tahun/nota_seq tidak boleh
       // berubah oleh siapa pun (termasuk Owner) -- itu identitas & nomor

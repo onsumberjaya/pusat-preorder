@@ -112,7 +112,15 @@ window.onAuthReady = async function (profile) {
       (snap) => {
         allCabangInput = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         cabangReady = true;
-        tryRenderOrRefreshForm();
+        // Render ulang PENUH (bukan cuma refresh ringan) tiap kali data
+        // cabang berubah -- supaya kalau Owner menonaktifkan cabang SAAT
+        // karyawannya sedang membuka halaman ini, blokirnya langsung
+        // muncul real-time, tidak nunggu mereka klik Simpan dulu baru gagal.
+        if (formReady) {
+          renderForm();
+        } else {
+          tryRenderOrRefreshForm();
+        }
       },
       (err) => {
         showToast("Gagal memuat cabang: " + friendlyFirebaseError(err), "error");
@@ -207,6 +215,32 @@ function grandTotal() {
 function renderForm() {
   const container = document.getElementById("form-container");
   const isEdit = !!editOrderId;
+
+  // Karyawan cabang yang cabangnya sudah dinonaktifkan Owner (lihat halaman
+  // Kelola Cabang) tidak boleh lagi input pesanan BARU -- riwayat pesanan
+  // lama tetap bisa dilihat seperti biasa lewat Daftar Pesanan, cuma
+  // halaman ini yang diblokir. (Mode Edit tidak relevan di sini karena
+  // sudah dikunci Owner-only lebih dulu di atas.)
+  if (!isEdit) {
+    const profile = window.currentUserProfile;
+    if (profile && profile.role === "karyawan" && profile.cabang_id) {
+      const myCabang = allCabangInput.find((c) => c.id === profile.cabang_id);
+      if (myCabang && myCabang.is_active === false) {
+        container.innerHTML = `
+          <div class="card" style="text-align:center; padding:40px 24px;">
+            <i class="ph-bold ph-storefront" style="font-size:36px; color:var(--gray-300);"></i>
+            <h3 style="margin:14px 0 6px;">Cabang "${escapeHtml(myCabang.nama)}" Sedang Nonaktif</h3>
+            <p style="color:var(--gray-500); font-size:13.5px; max-width:420px; margin:0 auto;">
+              Owner sudah menonaktifkan cabang ini, jadi input pesanan baru sementara ditutup.
+              Riwayat pesanan lama tetap bisa dilihat lewat menu Daftar Pesanan.
+            </p>
+            <a href="pesanan.html" class="btn-secondary" style="margin-top:16px; display:inline-flex;">Ke Daftar Pesanan</a>
+          </div>`;
+        return;
+      }
+    }
+  }
+
   const namaVal = isEdit ? editOrderData.nama_pembeli : "";
   const alamatVal = isEdit ? editOrderData.alamat || "" : "";
   const noHpVal = isEdit ? editOrderData.no_hp || "" : "";
