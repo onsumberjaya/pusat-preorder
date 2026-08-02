@@ -18,116 +18,35 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="js/pwa-register.js"></script>
 <style>
-  :root {
-    --rice-gold: #f5b400;
-    --rice-gold-light: #ffd966;
-    --rice-green: #0fb85c;
-  }
-
-  body {
-    background: radial-gradient(120% 100% at 15% 0%, var(--brand-100), var(--gray-50) 55%);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-
-  .login-shell {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-    max-width: 860px;
-    background: #fff;
-    border-radius: 22px;
-    box-shadow: 0 20px 50px rgba(15, 184, 92, 0.16), 0 4px 14px rgba(15, 23, 42, 0.06);
-    overflow: hidden;
-  }
-  @media (min-width: 860px) {
-    .login-shell { grid-template-columns: 1fr 1fr; min-height: 560px; }
-  }
-
-  /* ---------- Panel ilustrasi: matahari & lahan padi menguning ---------- */
-  .login-visual {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(165deg, var(--brand-100) 0%, var(--brand-300) 55%, #eef7c9 85%, #fdf3ae 100%);
-    padding: 30px;
-    min-height: 150px;
-    display: flex;
-    align-items: center;
-  }
-  @media (min-width: 860px) {
-    .login-visual { padding: 42px 38px 0; min-height: unset; }
-  }
-
-  .login-visual .sun {
-    position: absolute;
-    top: 34px; right: 38px;
-    width: 58px; height: 58px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff8e1, var(--rice-gold-light) 50%, var(--rice-gold) 100%);
-    box-shadow: 0 0 0 10px rgba(245, 180, 0, 0.18), 0 0 34px rgba(245, 180, 0, 0.5);
-  }
-
-  .login-visual-copy { position: relative; z-index: 2; }
-  .login-visual-copy .eyebrow {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-    color: var(--brand-700); background: rgba(255,255,255,0.65);
-    padding: 6px 12px; border-radius: 999px;
-  }
-
-  /* ---------- Panel form ---------- */
-  .login-form-panel { padding: 36px 30px 30px; display: flex; flex-direction: column; justify-content: center; }
-  @media (min-width: 860px) { .login-form-panel { padding: 42px 46px; } }
-
-  .login-form-panel .logo {
-    width: 52px; height: 52px; border-radius: 15px;
-    background: linear-gradient(135deg, var(--brand-600), var(--brand-300));
-    color: #fff; font-size: 26px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 16px;
-    box-shadow: 0 8px 20px rgba(22, 163, 74, 0.28);
-  }
-  .login-form-panel h1 { font-size: 19px; color: var(--gray-900); font-weight: 800; margin: 0 0 4px; }
-  .login-form-panel p.subtitle { color: var(--gray-500); font-size: 13.5px; margin: 0 0 24px; }
+  body { background: linear-gradient(135deg, #f0fdf4, #dcfce7); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-box { background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); padding: 34px 28px; width: 100%; max-width: 380px; }
+  .login-box h1 { text-align: center; font-size: 19px; color: var(--gray-900); font-weight: 800; margin: 0 0 4px; }
+  .login-box p.subtitle { text-align: center; color: var(--gray-500); font-size: 13.5px; margin: 0 0 22px; }
   .hint { text-align: center; font-size: 12.5px; color: var(--gray-400); margin-top: 16px; }
 </style>
 </head>
 <body>
-  <div class="login-shell">
+  <div class="login-box">
+    <div class="logo"><i class="ph-bold ph-plant"></i></div>
+    <h1>TOKO PERTANIAN SUMBER JAYA</h1>
+    <p class="subtitle">Silakan masuk untuk melanjutkan</p>
 
-    <div class="login-visual">
-      <div class="sun" aria-hidden="true"></div>
-      <div class="login-visual-copy">
-        <span class="eyebrow"><i class="ph-bold ph-plant"></i> Preorder Benih Padi Hibrida</span>
+    <form id="login-form">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="username" autocomplete="username" required />
       </div>
-    </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required />
+      </div>
+      <div id="login-alert"></div>
+      <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:12px;" id="login-btn">
+        Masuk
+      </button>
+    </form>
 
-    <div class="login-form-panel">
-      <div class="logo"><i class="ph-bold ph-plant"></i></div>
-      <h1>TOKO PERTANIAN SUMBER JAYA</h1>
-      <p class="subtitle">Silakan masuk untuk melanjutkan</p>
-
-      <form id="login-form">
-        <div class="field">
-          <label>Username</label>
-          <input type="text" id="username" autocomplete="username" required />
-        </div>
-        <div class="field">
-          <label>Password</label>
-          <input type="password" id="password" autocomplete="current-password" required />
-        </div>
-        <div id="login-alert"></div>
-        <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:12px;" id="login-btn">
-          Masuk
-        </button>
-      </form>
-
-      <p class="hint" id="setup-hint"></p>
-    </div>
-
+    <p class="hint" id="setup-hint"></p>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
