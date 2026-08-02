@@ -18,35 +18,212 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="js/pwa-register.js"></script>
 <style>
-  body { background: linear-gradient(135deg, #f0fdf4, #dcfce7); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .login-box { background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); padding: 34px 28px; width: 100%; max-width: 380px; }
-  .login-box h1 { text-align: center; font-size: 19px; color: var(--gray-900); font-weight: 800; margin: 0 0 4px; }
-  .login-box p.subtitle { text-align: center; color: var(--gray-500); font-size: 13.5px; margin: 0 0 22px; }
+  body {
+    background: var(--gray-50);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Blob dekoratif di belakang kartu -- disamarkan, tidak mengganggu keterbacaan */
+  body::before, body::after {
+    content: ""; position: fixed; z-index: 0; border-radius: 50%; filter: blur(90px); pointer-events: none;
+  }
+  body::before { top: -12%; left: -10%; width: 42vw; height: 42vw; background: var(--brand-300); opacity: 0.35; }
+  body::after { bottom: -14%; right: -10%; width: 40vw; height: 40vw; background: #f6c453; opacity: 0.3; }
+
+  .login-shell {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 940px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(15, 61, 36, 0.18), 0 4px 14px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+  }
+  @media (min-width: 900px) {
+    .login-shell { grid-template-columns: 1.35fr 1fr; min-height: 600px; }
+  }
+
+  /* ---------- Panel kiri: identitas & konteks toko ---------- */
+  .login-hero {
+    position: relative;
+    overflow: hidden;
+    background-color: #0f3d24;
+    background-image:
+      radial-gradient(rgba(134, 239, 172, 0.35) 1px, transparent 1px),
+      radial-gradient(rgba(134, 239, 172, 0.35) 1px, #0f3d24 1px);
+    background-size: 26px 26px;
+    background-position: 0 0, 13px 13px;
+    padding: 30px 30px 34px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #fff;
+    gap: 22px;
+  }
+  @media (min-width: 900px) { .login-hero { padding: 40px 40px 36px; } }
+
+  .login-hero::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(150deg, rgba(15,61,36,0.94) 10%, rgba(15,61,36,0.75) 45%, rgba(15,61,36,0.4) 100%);
+    pointer-events: none;
+  }
+
+  .login-hero-decor {
+    position: absolute; right: -34px; bottom: -34px;
+    font-size: 230px; line-height: 1; color: #fff; opacity: 0.06;
+    pointer-events: none; animation: hero-float 7s ease-in-out infinite;
+  }
+  @keyframes hero-float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+  @media (prefers-reduced-motion: reduce) { .login-hero-decor { animation: none; } }
+
+  .login-hero-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
+  .login-hero-brand .logo {
+    width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-300));
+    color: #fff; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+  }
+  .login-hero-brand .brand-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-300); display: block; margin-bottom: 1px; }
+  .login-hero-brand h1 { font-size: 16px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+
+  .login-hero-copy { position: relative; z-index: 1; max-width: 380px; }
+  .login-hero-copy .pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+    color: var(--brand-200); font-size: 11.5px; font-weight: 600;
+    padding: 6px 13px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .login-hero-copy .pill i { color: var(--brand-300); }
+  .login-hero-copy h2 { font-size: 27px; font-weight: 800; line-height: 1.28; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .login-hero-copy p { font-size: 13.5px; line-height: 1.6; color: #d7e9dd; margin: 0; }
+
+  .login-hero-features { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .login-hero-features .feature {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 13px; padding: 11px 12px;
+  }
+  .login-hero-features .feature .icon-box {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+    background: rgba(134, 239, 172, 0.16); color: var(--brand-300);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .login-hero-features .feature h4 { font-size: 12px; font-weight: 700; margin: 0 0 1px; color: #fff; }
+  .login-hero-features .feature p { font-size: 10.5px; color: #b9d4c1; margin: 0; }
+
+  /* ---------- Panel kanan: form ---------- */
+  .login-form-panel { padding: 36px 28px 28px; display: flex; flex-direction: column; justify-content: center; }
+  @media (min-width: 900px) { .login-form-panel { padding: 44px 42px; } }
+
+  .login-form-panel h2 { font-size: 20px; color: var(--gray-900); font-weight: 800; margin: 0 0 4px; }
+  .login-form-panel .subtitle { color: var(--gray-500); font-size: 13px; margin: 0 0 24px; }
+
+  .input-icon-field { position: relative; }
+  .input-icon-field i.field-icon {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    color: var(--gray-400); font-size: 16px; pointer-events: none;
+  }
+  .input-icon-field input { padding-left: 38px; }
+  .input-icon-field .toggle-visibility {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--gray-400); cursor: pointer; padding: 6px; display: flex;
+  }
+  .input-icon-field .toggle-visibility:hover { color: var(--gray-600); }
+
+  .login-form-panel .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--gray-700); margin-bottom: 6px; }
+  .login-form-panel .field input {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+    background: var(--gray-50); font-size: 13.5px; font-family: inherit; transition: all 0.15s ease;
+  }
+  .login-form-panel .field input:focus { outline: none; background: #fff; border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-100); }
+
+  .login-help-note {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--gray-100);
+    font-size: 12px; color: var(--gray-400); line-height: 1.5;
+  }
+  .login-help-note i { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
   .hint { text-align: center; font-size: 12.5px; color: var(--gray-400); margin-top: 16px; }
 </style>
 </head>
 <body>
-  <div class="login-box">
-    <div class="logo"><i class="ph-bold ph-plant"></i></div>
-    <h1>TOKO PERTANIAN SUMBER JAYA</h1>
-    <p class="subtitle">Silakan masuk untuk melanjutkan</p>
+  <div class="login-shell">
 
-    <form id="login-form">
-      <div class="field">
-        <label>Username</label>
-        <input type="text" id="username" autocomplete="username" required />
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="password" autocomplete="current-password" required />
-      </div>
-      <div id="login-alert"></div>
-      <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:12px;" id="login-btn">
-        Masuk
-      </button>
-    </form>
+    <div class="login-hero">
+      <i class="ph-bold ph-plant login-hero-decor" aria-hidden="true"></i>
 
-    <p class="hint" id="setup-hint"></p>
+      <div class="login-hero-brand">
+        <div class="logo"><i class="ph-bold ph-plant"></i></div>
+        <div>
+          <span class="brand-eyebrow">Sistem Manajemen Internal</span>
+          <h1>TOKO PERTANIAN SUMBER JAYA</h1>
+        </div>
+      </div>
+
+      <div class="login-hero-copy">
+        <span class="pill"><i class="ph-bold ph-seal-check"></i> Preorder Benih Padi Hibrida</span>
+        <h2>Kelola preorder benih padi hibrida</h2>
+        <p>Produk, harga per batch, sampai audit pesanan — semua cabang dalam satu sistem.</p>
+      </div>
+
+      <div class="login-hero-features">
+        <div class="feature">
+          <div class="icon-box"><i class="ph-bold ph-git-branch"></i></div>
+          <div><h4>Multi-Cabang</h4><p>Satu sistem, semua cabang</p></div>
+        </div>
+        <div class="feature">
+          <div class="icon-box"><i class="ph-bold ph-whatsapp-logo"></i></div>
+          <div><h4>Konfirmasi WA</h4><p>Sekali klik ke pembeli</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form-panel">
+      <h2>Silakan Masuk</h2>
+      <p class="subtitle">Gunakan akun staf yang sudah didaftarkan Owner.</p>
+
+      <form id="login-form">
+        <div class="field">
+          <label>Username</label>
+          <div class="input-icon-field">
+            <i class="ph-bold ph-user field-icon"></i>
+            <input type="text" id="username" autocomplete="username" required />
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-icon-field">
+            <i class="ph-bold ph-lock field-icon"></i>
+            <input type="password" id="password" autocomplete="current-password" required />
+            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility()" tabindex="-1" aria-label="Tampilkan/sembunyikan password">
+              <i class="ph-bold ph-eye" id="password-toggle-icon"></i>
+            </button>
+          </div>
+        </div>
+        <div id="login-alert"></div>
+        <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:12px; gap:8px;" id="login-btn">
+          <span>Masuk</span><i class="ph-bold ph-arrow-right" style="font-size:14px;"></i>
+        </button>
+      </form>
+
+      <div class="login-help-note">
+        <i class="ph-bold ph-info"></i>
+        <span>Lupa password atau belum punya akun? Hubungi Owner/Admin Toko untuk dibuatkan/direset lewat menu Akun Pengguna.</span>
+      </div>
+
+      <p class="hint" id="setup-hint"></p>
+    </div>
+
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -55,6 +232,15 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/utils.js"></script>
   <script>
+    function togglePasswordVisibility() {
+      const passwordInput = document.getElementById("password");
+      const icon = document.getElementById("password-toggle-icon");
+      const showing = passwordInput.type === "text";
+      passwordInput.type = showing ? "password" : "text";
+      icon.classList.toggle("ph-eye", showing);
+      icon.classList.toggle("ph-eye-slash", !showing);
+    }
+
     // Kalau sudah login (mis. buka index.html lagi padahal sesinya masih
     // berlaku), langsung lempar ke daftar pesanan -- TAPI jangan sampai ini
     // ikut terpicu di tengah proses login yang baru saja dikirim (lihat
@@ -77,7 +263,7 @@
       const alertBox = document.getElementById("login-alert");
       alertBox.innerHTML = "";
       btn.disabled = true;
-      btn.textContent = "Memproses...";
+      btn.innerHTML = "Memproses...";
       loggingIn = true;
       try {
         const cred = await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
@@ -94,7 +280,7 @@
         loggingIn = false;
         alertBox.innerHTML = `<div class="alert alert-error">${friendlyFirebaseError(err)}</div>`;
         btn.disabled = false;
-        btn.textContent = "Masuk";
+        btn.innerHTML = '<span>Masuk</span><i class="ph-bold ph-arrow-right" style="font-size:14px;"></i>';
       }
     });
 
