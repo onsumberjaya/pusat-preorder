@@ -506,6 +506,8 @@ table tbody tr:hover { background: var(--gray-50); }
    Terjual per Alamat) -- width:100% + position:relative supaya Chart.js
    selalu mengisi penuh lebar kolomnya, tanpa sisa ruang kosong. */
 .chart-box { position: relative; width: 100%; }
+.chart-card { display: flex; flex-direction: column; }
+.chart-card .chart-box { flex: 1; min-height: 220px; height: auto !important; }
 
 @media (max-width: 860px) {
   /* Kotak Jumlah Pembeli s/d Sudah/Belum Diambil dibuat lebih kecil & rapat di HP. */

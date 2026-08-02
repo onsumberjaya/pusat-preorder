@@ -359,12 +359,12 @@ function renderDashboard() {
       <div class="chart-waktu-box"><canvas id="chart-waktu"></canvas></div>
     </div>
 
-    <div class="grid grid-2" style="margin-top:20px;">
-      <div class="card">
+    <div class="grid grid-2 chart-card-row" style="margin-top:20px;">
+      <div class="card chart-card">
         <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-chart-bar"></i></span><h3>Jumlah Pesanan per Produk</h3></div>
-        <div class="chart-box" style="height:220px;"><canvas id="chart-produk"></canvas></div>
+        <div class="chart-box" style="height:280px;"><canvas id="chart-produk"></canvas></div>
       </div>
-      <div class="card">
+      <div class="card chart-card">
         <div class="card-heading" style="margin-bottom:14px;"><span class="card-heading-icon"><i class="ph-bold ph-map-pin"></i></span><h3>Jumlah Unit Terjual per Alamat (Top 10)</h3></div>
         <div class="chart-box" style="height:280px;"><canvas id="chart-alamat"></canvas></div>
       </div>
