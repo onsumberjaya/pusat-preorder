@@ -17,7 +17,7 @@ service cloud.firestore {
     }
 
     // Admin Kasir: role baru pengganti "Karyawan" lama -- akses semua cabang,
-    // hanya tidak boleh kelola Produk/Akun/Profil Toko/Kelola Cabang (dibatasi
+    // hanya tidak boleh kelola Akun/Profil Toko/Kelola Cabang (dibatasi
     // di rule masing-masing collection itu, bukan di sini).
     function isAdminKasir() {
       return isSignedIn() &&
@@ -144,10 +144,12 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active_session_id']);
     }
 
-    // Produk & gelombang harga: semua yang login boleh baca, hanya Owner boleh ubah.
+    // Produk & gelombang harga: semua yang login boleh baca; Owner & Admin
+    // Kasir boleh kelola (tambah/ubah produk & gelombang), Karyawan cabang
+    // hanya baca saja.
     match /products/{productId} {
       allow read: if isSignedIn();
-      allow write: if isOwner();
+      allow write: if isOwner() || isAdminKasir();
     }
 
     // Daftar cabang: semua yang login boleh baca (dipakai buat dropdown pilih

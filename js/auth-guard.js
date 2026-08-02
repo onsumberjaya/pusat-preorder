@@ -28,6 +28,20 @@ auth.onAuthStateChanged(async (user) => {
       return;
     }
 
+    // Halaman dengan <body data-allowed-roles="owner,admin_kasir"> hanya
+    // boleh diakses role yang disebut (dipisah koma); role lain otomatis
+    // diarahkan kembali. Dipakai untuk halaman yang boleh dipakai lebih dari
+    // 1 role tapi tidak semua role (mis. Produk & Batch: Owner + Admin
+    // Kasir, tapi bukan Karyawan cabang).
+    const allowedRolesAttr = document.body.getAttribute("data-allowed-roles");
+    if (allowedRolesAttr) {
+      const allowedRoles = allowedRolesAttr.split(",").map((r) => r.trim());
+      if (!allowedRoles.includes(profile.role)) {
+        window.location.href = "pesanan.html";
+        return;
+      }
+    }
+
     if (typeof renderSidebar === "function") renderSidebar(profile);
     if (typeof window.onAuthReady === "function") window.onAuthReady(profile);
 

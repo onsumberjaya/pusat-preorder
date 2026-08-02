@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { href: "dashboard.html", icon: "ph-chart-line-up", label: "Dashboard", ownerOnly: false },
   { href: "input-pesanan.html", icon: "ph-plus-circle", label: "Input Pesanan", ownerOnly: false },
   { href: "pesanan.html", icon: "ph-clipboard-text", label: "Daftar Pesanan", ownerOnly: false },
-  { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: true },
+  { href: "produk.html", icon: "ph-plant", label: "Produk & Batch", ownerOnly: false, roles: ["owner", "admin_kasir"] },
   { href: "laporan.html", icon: "ph-file-arrow-down", label: "Laporan & Export", ownerOnly: false },
   { href: "panduan.html", icon: "ph-book-open-text", label: "Panduan", ownerOnly: false },
 ];
@@ -13,7 +13,10 @@ const NAV_ITEMS = [
 function renderSidebar(profile) {
   const currentPage = location.pathname.split("/").pop() || "pesanan.html";
 
-  const navHtml = NAV_ITEMS.filter((item) => !item.ownerOnly || profile.role === "owner")
+  const navHtml = NAV_ITEMS.filter((item) => {
+      if (item.roles) return item.roles.includes(profile.role);
+      return !item.ownerOnly || profile.role === "owner";
+    })
     .map(
       (item) => `
       <a class="nav-item ${item.href === currentPage ? "active" : ""}" href="${item.href}">
