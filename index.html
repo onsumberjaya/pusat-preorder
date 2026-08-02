@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Benih Preorder" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="js/pwa-register.js"></script>
 <style>
@@ -51,11 +51,11 @@
   .login-visual {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(165deg, #baf7d1 0%, #eafcae 45%, #ffe98f 80%, var(--rice-gold-light) 100%);
-    padding: 30px 30px 0;
-    min-height: 190px;
+    background: linear-gradient(165deg, var(--brand-100) 0%, var(--brand-300) 55%, #eef7c9 85%, #fdf3ae 100%);
+    padding: 30px;
+    min-height: 150px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
   }
   @media (min-width: 860px) {
     .login-visual { padding: 42px 38px 0; min-height: unset; }
@@ -70,44 +70,12 @@
     box-shadow: 0 0 0 10px rgba(245, 180, 0, 0.18), 0 0 34px rgba(245, 180, 0, 0.5);
   }
 
-  .login-visual-copy { position: relative; z-index: 2; max-width: 300px; }
+  .login-visual-copy { position: relative; z-index: 2; }
   .login-visual-copy .eyebrow {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-    color: var(--brand-700); background: rgba(255,255,255,0.6);
-    padding: 5px 10px; border-radius: 999px; margin-bottom: 14px;
-  }
-  .login-visual-copy h2 {
-    font-family: "Fraunces", "Inter", serif;
-    font-weight: 600;
-    font-size: 24px;
-    line-height: 1.25;
-    color: var(--soil-700);
-    margin: 0 0 8px;
-  }
-  .login-visual-copy p {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--gray-700);
-    margin: 0;
-  }
-
-  .login-field-svg { display: block; width: 100%; height: auto; margin-top: auto; }
-
-  .sprout { transform-origin: bottom center; animation: sprout-grow 0.7s cubic-bezier(.34,1.56,.64,1) both; }
-  .sprout:nth-child(1) { animation-delay: .05s; }
-  .sprout:nth-child(2) { animation-delay: .15s; }
-  .sprout:nth-child(3) { animation-delay: .25s; }
-  .sprout:nth-child(4) { animation-delay: .35s; }
-  .sprout:nth-child(5) { animation-delay: .45s; }
-  .sprout:nth-child(6) { animation-delay: .55s; }
-  .sprout:nth-child(7) { animation-delay: .65s; }
-  @keyframes sprout-grow {
-    from { transform: scaleY(0); opacity: 0; }
-    to { transform: scaleY(1); opacity: 1; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .sprout { animation: none; }
+    color: var(--brand-700); background: rgba(255,255,255,0.65);
+    padding: 6px 12px; border-radius: 999px;
   }
 
   /* ---------- Panel form ---------- */
@@ -134,32 +102,7 @@
       <div class="sun" aria-hidden="true"></div>
       <div class="login-visual-copy">
         <span class="eyebrow"><i class="ph-bold ph-plant"></i> Preorder Benih Padi Hibrida</span>
-        <h2>Semua Cabang, Satu Alur Kerja</h2>
-        <p>Produk, harga per batch, sampai konfirmasi ke pembeli lewat WA — tinggal klik.</p>
       </div>
-
-      <!-- Lahan padi bergelombang dengan malai menguning -- mengibaratkan
-           fitur "gelombang" (batch) yang jadi inti aplikasi ini, sekaligus
-           siklus dari benih ditanam sampai padi siap panen. -->
-      <svg class="login-field-svg" viewBox="0 0 400 150" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0,90 Q66,60 133,82 T266,78 T400,64 L400,150 L0,150 Z" fill="var(--brand-200)" opacity="0.75"/>
-        <path d="M0,112 Q66,88 133,106 T266,102 T400,92 L400,150 L0,150 Z" fill="var(--rice-green)" opacity="0.9"/>
-
-        <g stroke="#0a7a3f" stroke-width="1.2" opacity="0.3" fill="none">
-          <path d="M0,124 Q66,102 133,120 T266,116 T400,106"/>
-          <path d="M0,134 Q66,113 133,130 T266,126 T400,116"/>
-        </g>
-
-        <g>
-          <g class="sprout" transform="translate(28,110)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(88,100)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(148,114)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(208,96)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(268,110)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(328,92)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-          <g class="sprout" transform="translate(378,102)"><path d="M0,20 Q5,10 0,0" stroke="var(--brand-700)" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-3" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-25 -3 -1)"/><ellipse cx="1" cy="-5" rx="3.4" ry="1.8" fill="var(--rice-gold)" transform="rotate(-12 1 -5)"/><ellipse cx="4.5" cy="-1" rx="3.4" ry="1.8" fill="var(--rice-gold-light)" transform="rotate(18 4.5 -1)"/></g>
-        </g>
-      </svg>
     </div>
 
     <div class="login-form-panel">
