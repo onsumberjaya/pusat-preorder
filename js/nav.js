@@ -36,12 +36,19 @@ function renderSidebar(profile) {
         </div>
       </div>
       <div class="sidebar-nav">${navHtml}</div>
+      <div class="sidebar-footer">
+        <div class="theme-switch-row">
+          <span class="theme-switch-label"><i class="ph-bold ph-moon" data-theme-toggle-icon></i> <span data-theme-toggle-label>Mode Gelap</span></span>
+          <button type="button" class="theme-switch" id="sidebar-theme-switch" onclick="toggleTheme()" aria-label="Ganti mode gelap/terang"></button>
+        </div>
+      </div>
     `;
   }
 
   renderTopbar(profile);
   fillTopbarCabangName(profile);
   ensureChangePasswordModal();
+  updateThemeToggleUI(getCurrentTheme());
 
   const overlay = document.getElementById("sidebar-overlay");
   if (overlay) overlay.onclick = () => toggleSidebar(false);
@@ -82,6 +89,7 @@ function renderTopbar(profile) {
             <span id="topbar-role-text">${escapeHtml(roleLabel(profile.role))}</span>${displayName ? " · " + displayName : ""}
           </div>
           <button type="button" onclick="closeAccountMenu(); openChangePasswordModal();"><i class="ph ph-key"></i> Ganti Password Saya</button>
+          <button type="button" onclick="closeAccountMenu(); toggleTheme();"><i class="ph-bold ph-moon" data-theme-toggle-icon></i> <span data-theme-toggle-label>Mode Gelap</span></button>
           <button type="button" onclick="closeAccountMenu(); logout();"><i class="ph ph-sign-out"></i> Keluar</button>
         </div>
       </div>

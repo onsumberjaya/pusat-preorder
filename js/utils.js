@@ -331,3 +331,37 @@ function showConfirmModal(bodyHtml, opts) {
     cancelBtn.addEventListener("click", onCancel);
   });
 }
+
+// ---------- Mode Gelap / Terang ----------
+// Preferensi disimpan per perangkat (localStorage), tidak disinkron ke akun.
+// Anti-flash: atribut data-theme di <html> sudah diset lebih dulu lewat
+// script kecil di <head> tiap halaman (sebelum CSS sempat dirender), fungsi
+// di sini cuma menangani toggle & sinkronisasi ikon/switch setelah itu.
+function getCurrentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try {
+    localStorage.setItem("theme", theme);
+  } catch (e) {
+    // Diamkan -- kalau localStorage diblokir, tema tetap jalan untuk sesi ini saja.
+  }
+  updateThemeToggleUI(theme);
+}
+
+function toggleTheme() {
+  applyTheme(getCurrentTheme() === "dark" ? "light" : "dark");
+}
+
+function updateThemeToggleUI(theme) {
+  document.querySelectorAll("[data-theme-toggle-icon]").forEach((el) => {
+    el.className = theme === "dark" ? "ph-bold ph-sun" : "ph-bold ph-moon";
+  });
+  document.querySelectorAll("[data-theme-toggle-label]").forEach((el) => {
+    el.textContent = theme === "dark" ? "Mode Terang" : "Mode Gelap";
+  });
+  const sw = document.getElementById("sidebar-theme-switch");
+  if (sw) sw.classList.toggle("on", theme === "dark");
+}
