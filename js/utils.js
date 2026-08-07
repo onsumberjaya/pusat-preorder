@@ -365,3 +365,11 @@ function updateThemeToggleUI(theme) {
   const sw = document.getElementById("sidebar-theme-switch");
   if (sw) sw.classList.toggle("on", theme === "dark");
 }
+
+// ---------- Nonaktifkan klik kanan ----------
+// Cuma pencegah ringan (orang awam tidak bisa klik kanan > "Inspect" atau
+// "Save As" dengan gampang) -- BUKAN proteksi keamanan sungguhan. Orang yang
+// paham teknis tetap bisa buka DevTools lewat keyboard shortcut atau menu
+// browser sendiri. Berlaku di semua halaman karena utils.js dimuat di semua
+// halaman aplikasi.
+document.addEventListener("contextmenu", (e) => e.preventDefault());

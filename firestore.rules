@@ -126,9 +126,9 @@ service cloud.firestore {
               && after.items.size() == before.items.size());
     }
 
-    // Profil toko: semua yang login boleh baca, hanya Owner boleh ubah.
+    // Profil toko: semua yang login DAN masih aktif boleh baca, hanya Owner boleh ubah.
     match /config/{docId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && isActiveUser();
       allow write: if isOwner();
     }
 
@@ -144,19 +144,20 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active_session_id']);
     }
 
-    // Produk & gelombang harga: semua yang login boleh baca; Owner & Admin
-    // Kasir boleh kelola (tambah/ubah produk & gelombang), Karyawan cabang
-    // hanya baca saja.
+    // Produk & gelombang harga: semua yang login DAN masih aktif boleh baca;
+    // Owner & Admin Kasir boleh kelola (tambah/ubah produk & gelombang),
+    // Karyawan cabang hanya baca saja.
     match /products/{productId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && isActiveUser();
       allow write: if isOwner() || isAdminKasir();
     }
 
-    // Daftar cabang: semua yang login boleh baca (dipakai buat dropdown pilih
-    // cabang di Input Pesanan/filter), hanya Owner yang boleh kelola (tambah/
-    // ubah/nonaktifkan cabang) lewat halaman "Kelola Cabang".
+    // Daftar cabang: semua yang login DAN masih aktif boleh baca (dipakai
+    // buat dropdown pilih cabang di Input Pesanan/filter), hanya Owner yang
+    // boleh kelola (tambah/ubah/nonaktifkan cabang) lewat halaman "Kelola
+    // Cabang".
     match /cabang/{cabangId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && isActiveUser();
       allow write: if isOwner();
     }
 
