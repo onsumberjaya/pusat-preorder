@@ -4,7 +4,7 @@ let allCabangMap = {};
 let selectedIds = new Set();
 let currentProfile = null;
 let currentPage = 1;
-let pageSize = 15;
+let pageSize = 14;
 let tokoProfil = { nama: "Toko Kami" }; // dipakai di teks pesan WA, dimuat sekali di onAuthReady
 
 // Kotak centang per pesanan disembunyikan sampai kotak centang di header
